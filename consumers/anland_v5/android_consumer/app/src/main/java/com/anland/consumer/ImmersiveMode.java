@@ -113,8 +113,10 @@ final class ImmersiveMode implements InputGrabTransport.Listener {
         void onTouchscreenGrabChanged(boolean grabbed);
         /** A {@link Touchpad} wired to the host's cursor, for a grabbed physical pad. */
         Touchpad newGrabbedPad();
-        /** Raw relative counts and per-device speed measured at evdev sample time. */
-        void movePointerRelative(float dx, float dy, float speedCountsPerSecond);
+        /** Raw relative counts and per-device speed measured at evdev sample time.
+         *  The flag selects the touchpad or the mouse acceleration preference. */
+        void movePointerRelative(float dx, float dy, float speedCountsPerSecond,
+                                 boolean touchpad);
         void sendKey(int action, int evdev);
         void sendMouseButton(int button, boolean pressed);
         void sendMouseScroll(int axis, float value);
@@ -770,7 +772,8 @@ final class ImmersiveMode implements InputGrabTransport.Listener {
                 // into the next estimate instead of treating them as an idle gap.
                 d.relativePendingDistance += distance;
             }
-            host.movePointerRelative(d.relX, d.relY, d.relativeSpeed);
+            host.movePointerRelative(d.relX, d.relY, d.relativeSpeed,
+                    d.cls == InputGrab.CLASS_TOUCHPAD);
             d.relX = 0f;
             d.relY = 0f;
         }

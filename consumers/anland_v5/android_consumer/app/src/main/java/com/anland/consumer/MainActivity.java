@@ -176,7 +176,14 @@ public class MainActivity extends Activity
 
     // ==================== 触摸板相关设置 ====================
     public static final String KEY_TOUCHPAD_MODE = "touchpad_mode";
-    public static final String KEY_MOUSE_ACCEL = "mouse_speed"; // 名称仍为 speed，实际控制加速度强度
+    // Touchpad acceleration. The preference name is the old "mouse_speed" key:
+    // it has always stored the touchpad value, and renaming it would discard
+    // the setting for existing users.
+    public static final String KEY_TOUCHPAD_ACCEL = "mouse_speed";
+    // Mouse acceleration, independent of the touchpads since the two were split.
+    // Absent means "use the touchpad value", so an existing installation keeps
+    // the behaviour it had before the split.
+    public static final String KEY_MOUSE_ACCEL = "mouse_pointer_speed";
     // Two-finger scroll tuning, shared by the on-screen and captured touchpads.
     public static final String KEY_SCROLL_SPEED = "scroll_speed";
     public static final String KEY_SCROLL_REVERSE = "scroll_reverse";
@@ -244,6 +251,8 @@ public class MainActivity extends Activity
     // Raw hardware-touchpad coordinate state while pointer capture is active.
     // Gesture recognition itself belongs to Touchpad above.
     private float capturedTouchpadAccel = 1.0f;
+    // Captured relative mice have their own acceleration; see readMouseAccel.
+    private float capturedMouseAccel = 1.0f;
     /** Raw mouse speed at which half of the configured acceleration is applied. */
     private static final float RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S = 1000f;
     private boolean capturedTouchpadBaselineValid = false;
@@ -1154,10 +1163,35 @@ public class MainActivity extends Activity
      * and again on resume, so edits made in Settings take effect on return.
      */
     private void applyTouchpadPrefs(SharedPreferences prefs) {
-        capturedTouchpadAccel = Math.max(0.5f,
-                Math.min(10.0f, prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f)));
+        capturedTouchpadAccel = readTouchpadAccel(prefs);
+        capturedMouseAccel = readMouseAccel(prefs);
         applyTouchpadPrefs(prefs, screenTouchpad);
         applyTouchpadPrefs(prefs, capturedTouchpad);
+    }
+
+    /** Touchpad acceleration, clamped to the range the settings slider exposes. */
+    public static float readTouchpadAccel(SharedPreferences prefs) {
+        return clampAccel(prefs.getFloat(KEY_TOUCHPAD_ACCEL, 1.0f));
+    }
+
+    /**
+     * Mouse acceleration, clamped to the slider range. Before the split the
+     * mouse shared the touchpad value, so on the first read after upgrading the
+     * old value is stored once under the new key; afterwards the two settings
+     * are independent.
+     */
+    public static float readMouseAccel(SharedPreferences prefs) {
+        if (!prefs.contains(KEY_MOUSE_ACCEL)) {
+            float inherited = readTouchpadAccel(prefs);
+            prefs.edit().putFloat(KEY_MOUSE_ACCEL, inherited).apply();
+            return inherited;
+        }
+        return clampAccel(prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f));
+    }
+
+    /** Acceleration is clamped to the range both sliders expose. */
+    private static float clampAccel(float strength) {
+        return Math.max(0.5f, Math.min(10.0f, strength));
     }
 
     /** The same tuning for one pad, so an immersive session's pad shares it. */
@@ -1172,8 +1206,8 @@ public class MainActivity extends Activity
                     prefs.getBoolean(KEY_PAD_DEBUG, false));
         pad.setClickpadRightZone(
                 prefs.getBoolean(KEY_PAD_RIGHT_ZONE, false));
-        pad.setAccelStrength(Math.max(0.5f,
-                Math.min(10.0f, prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f))));
+        pad.setAccelStrength(clampAccel(
+                prefs.getFloat(KEY_TOUCHPAD_ACCEL, 1.0f)));
         pad.setScrollSpeed(prefs.getFloat(KEY_SCROLL_SPEED,
                 Touchpad.DEFAULT_SCROLL_SPEED));
         pad.setScrollReversed(prefs.getBoolean(KEY_SCROLL_REVERSE, false));
@@ -1428,14 +1462,14 @@ public class MainActivity extends Activity
         if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_HOVER_MOVE) {
             // Relative mouse samples can be batched.  Consume every historical
             // sample so fast movements do not lose deltas between frames.
-            // Same acceleration curve as the touchpads: a Bluetooth mouse is
-            // SOURCE_MOUSE_RELATIVE, and without this it would bypass the
-            // sensitivity setting entirely.
+            // External mice use their own sensitivity setting; a Bluetooth
+            // mouse is SOURCE_MOUSE_RELATIVE, so without this it would bypass
+            // acceleration entirely.
             for (int i = 0; i < event.getHistorySize(); i++) {
-                sendCapturedTouchpadMotion(event.getHistoricalX(0, i),
+                sendCapturedMouseMotion(event.getHistoricalX(0, i),
                         event.getHistoricalY(0, i));
             }
-            sendCapturedTouchpadMotion(event.getX(), event.getY());
+            sendCapturedMouseMotion(event.getX(), event.getY());
         }
 
         if (action == MotionEvent.ACTION_SCROLL) {
@@ -1685,11 +1719,23 @@ public class MainActivity extends Activity
     }
 
     private void sendCapturedTouchpadMotion(float dx, float dy) {
+        sendCapturedPointerMotion(dx, dy, capturedTouchpadAccel);
+    }
+
+    private void sendCapturedMouseMotion(float dx, float dy) {
+        sendCapturedPointerMotion(dx, dy, capturedMouseAccel);
+    }
+
+    /**
+     * Apply the accelerator for one pointer source and hand the result to the
+     * shared cursor. Touchpads pass their own strength, mice theirs.
+     */
+    private void sendCapturedPointerMotion(float dx, float dy, float accelStrength) {
         if (dx == 0f && dy == 0f)
             return;
         float distance = (float) Math.hypot(dx, dy);
         float speed = distance / 10.0f;
-        float scale = 1.0f + (capturedTouchpadAccel - 1.0f)
+        float scale = 1.0f + (accelStrength - 1.0f)
                 * (speed / (1.0f + speed));
         scale = Math.max(0.3f, Math.min(10.0f, scale));
         movePointerBy(dx * scale, dy * scale);
@@ -2722,12 +2768,14 @@ public class MainActivity extends Activity
     }
 
     @Override
-    public void movePointerRelative(float dx, float dy, float speedCountsPerSecond) {
+    public void movePointerRelative(float dx, float dy, float speedCountsPerSecond,
+                                    boolean touchpad) {
         if (dx == 0f && dy == 0f)
             return;
         // The speed comes from the device's timestamps, never main-thread timing.
         float speed = speedCountsPerSecond / RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S;
-        float scale = 1.0f + (capturedTouchpadAccel - 1.0f) * (speed / (1.0f + speed));
+        float accel = touchpad ? capturedTouchpadAccel : capturedMouseAccel;
+        float scale = 1.0f + (accel - 1.0f) * (speed / (1.0f + speed));
         scale = Math.max(0.3f, Math.min(10.0f, scale));
         movePointerBy(dx * scale, dy * scale);
     }

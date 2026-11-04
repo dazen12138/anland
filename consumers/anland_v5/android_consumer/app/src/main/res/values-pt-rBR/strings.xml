@@ -68,6 +68,7 @@
     <string name="pointer_capture_switch">Capturar ponteiro externo</string>
     <string name="pointer_capture_hint">Trava um mouse ou touchpad externo na área de exibição do desktop e usa movimento relativo, para que alcançar a borda superior ou inferior não revele as barras do sistema Android. Use o Voltar do Android para liberar temporariamente; clique na área de exibição do desktop para capturar novamente. A entrada por toque na tela não é afetada.</string>
     <string name="pointer_capture_released">Ponteiro externo liberado. Clique na área de exibição do desktop para capturá-lo novamente.</string>
+    <string name="mouse_pointer_sensitivity_label">Sensibilidade do Ponteiro do Mouse (Aceleração)</string>
     <string name="mouse_sensitivity_label">Sensibilidade do Ponteiro do Touchpad (Aceleração)</string>
     <string name="mouse_accel_value">%1$.1fx</string>
     <string name="scroll_reverse_switch">Inverter direção da rolagem</string>

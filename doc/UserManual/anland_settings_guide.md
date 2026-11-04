@@ -185,12 +185,21 @@ Most single-button laptop touchpads report every physical press as a left click,
 
 This affects captured physical touchpads and touchpads grabbed in immersive mode. The on-screen touchpad and devices with dedicated buttons are unaffected.
 
+<a id="mouse-pointer-sensitivity"></a>
+### Mouse Pointer Sensitivity (Acceleration)
+
+The range is 0.5x to 10x. Higher values move the pointer farther during fast movement; lower values help with precise positioning.
+
+This affects a captured external mouse and mice taken over in relative mode in immersive mode. It does not affect touchpads (on-screen or physical) or absolute touch.
+
+Acceleration varies with movement speed: slow adjustments stay controlled, while fast movement accelerates more.
+
 <a id="pointer-sensitivity"></a>
 ### Touchpad Pointer Sensitivity (Acceleration)
 
 The range is 0.5x to 10x. Higher values move the pointer farther during fast movement; lower values help with precise positioning.
 
-This affects the on-screen touchpad, captured physical touchpads, and external mice in relative mode. It does not affect absolute touch.
+This affects the on-screen touchpad, captured physical touchpads, and touchpads taken over in immersive mode. It does not affect external mice (use Mouse Pointer Sensitivity above) or absolute touch.
 
 Acceleration varies with movement speed: slow adjustments stay controlled, while fast movement accelerates more.
 

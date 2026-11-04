@@ -89,7 +89,9 @@ public class SettingsActivity extends Activity {
 
     // ===== 新增：触摸板 Key =====
     private static final String KEY_TOUCHPAD_MODE = "touchpad_mode";
-    private static final String KEY_MOUSE_ACCEL = "mouse_speed";
+    // "mouse_speed" is the legacy preference name; it stores the touchpad value.
+    private static final String KEY_TOUCHPAD_ACCEL = MainActivity.KEY_TOUCHPAD_ACCEL;
+    private static final String KEY_MOUSE_ACCEL = MainActivity.KEY_MOUSE_ACCEL;
     private static final String KEY_POINTER_CAPTURE = "pointer_capture";
     private static final String KEY_SCROLL_SPEED = "scroll_speed";
     private static final String KEY_SCROLL_REVERSE = "scroll_reverse";
@@ -1299,40 +1301,14 @@ public class SettingsActivity extends Activity {
         pointerCaptureHint.setPadding(0, dp(4), 0, dp(12));
         root.addView(pointerCaptureHint);
 
-        // 鼠标加速度（灵敏度）—— 范围 0.5 ~ 10.0
-        LinearLayout accelLayout = new LinearLayout(this);
-        accelLayout.setOrientation(LinearLayout.VERTICAL);
-        accelLayout.setPadding(0, dp(8), 0, dp(16));
+        // 鼠标指针灵敏度（加速度）—— 范围 0.5 ~ 10.0。放在触摸板灵敏度上方。
+        // readMouseAccel also migrates the old shared value on first use.
+        addAccelSlider(root, R.string.mouse_pointer_sensitivity_label,
+                KEY_MOUSE_ACCEL, MainActivity.readMouseAccel(prefs), dp(8));
 
-        TextView accelLabel = new TextView(this);
-        accelLabel.setText(R.string.mouse_sensitivity_label);
-        accelLabel.setTextSize(14);
-        accelLayout.addView(accelLabel);
-
-        final TextView accelValue = new TextView(this);
-        accelValue.setTextSize(14);
-        accelValue.setTextColor(Color.BLUE);
-        accelLayout.addView(accelValue);
-
-        SeekBar accelSeek = new SeekBar(this);
-        accelSeek.setMax(190); // 0.5 ~ 10.0 step 0.05
-        float curAccel = prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f);
-        curAccel = Math.max(0.5f, Math.min(10.0f, curAccel));
-        accelSeek.setProgress((int)((curAccel - 0.5f) / 0.05f));
-        accelValue.setText(getString(R.string.mouse_accel_value, curAccel));
-        accelSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float val = 0.5f + progress * 0.05f;
-                accelValue.setText(getString(R.string.mouse_accel_value, val));
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putFloat(KEY_MOUSE_ACCEL, val).apply();
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-        accelLayout.addView(accelSeek);
-        root.addView(accelLayout);
+        // 触摸板指针灵敏度（加速度）—— 范围 0.5 ~ 10.0
+        addAccelSlider(root, R.string.mouse_sensitivity_label,
+                KEY_TOUCHPAD_ACCEL, MainActivity.readTouchpadAccel(prefs), dp(16));
 
         // ===== 双指滚动 =====
         Switch reverseScrollSwitch = new Switch(this);
@@ -1382,6 +1358,49 @@ public class SettingsActivity extends Activity {
         addFloatSlider(root, R.string.gesture_scale_label, R.string.gesture_scale_value,
                 R.string.gesture_scale_hint,
                 KEY_GESTURE_SCALE, 100f, 3000f, 20f, 800f);
+    }
+
+    /**
+     * A labelled acceleration slider for one pointer source, 0.5x to 10x in
+     * 0.05x steps. {@code fallback} is used only while the preference is absent.
+     */
+    private void addAccelSlider(LinearLayout root, int labelRes, final String key,
+                                float fallback, int bottomPadding) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(0, dp(8), 0, bottomPadding);
+
+        TextView label = new TextView(this);
+        label.setText(labelRes);
+        label.setTextSize(14);
+        layout.addView(label);
+
+        final TextView value = new TextView(this);
+        value.setTextSize(14);
+        value.setTextColor(Color.BLUE);
+        layout.addView(value);
+
+        SeekBar seek = new SeekBar(this);
+        seek.setMax(190); // 0.5 ~ 10.0 step 0.05
+        float cur = prefs.getFloat(key, fallback);
+        cur = Math.max(0.5f, Math.min(10.0f, cur));
+        seek.setProgress(Math.round((cur - 0.5f) / 0.05f));
+        value.setText(getString(R.string.mouse_accel_value, cur));
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float val = 0.5f + progress * 0.05f;
+                value.setText(getString(R.string.mouse_accel_value, val));
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putFloat(key, val).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        layout.addView(seek);
+        root.addView(layout);
     }
 
     /**
