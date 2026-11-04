@@ -2,7 +2,10 @@ name: Build APK and Daemon
 
 on:
   push:
-    branches: [ '**' ]
+    branches:
+      - main
+      - legacy
+      - dev/*
   workflow_dispatch:
   workflow_call:
 
