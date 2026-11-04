@@ -301,6 +301,8 @@
     <string name="auto_stretch_hint">開：顯示畫面填滿螢幕（必要時延展）。關：維持自訂解析度的長寬比，並以黑邊填補（letterbox）。輸入座標會自動對應。</string>
     <string name="pad_tap">外接觸控板：合成點擊</string>
     <string name="pad_tip">控制已擷取的外接觸控板與沉浸模式外接觸控板的單指、雙指點擊及長按拖曳。停用後實體按鍵仍可運作。螢幕上的觸控板不受影響。</string>
+    <string name="pad_right_zone">按觸控板右側為右鍵</string>
+    <string name="pad_right_zone_hint">關閉（預設）：按觸控板右側也會送出左鍵，避免誤觸右鍵選單；右鍵可用雙指輕點。開啟：單鍵觸控板按右側會送出右鍵。</string>
     <string name="pad_guard">捲動後 %1$d 毫秒內忽略外接觸控板點擊（0 = 關閉）</string>
     <string name="pad_debug">觸控板除錯記錄（AnlandTouchpad）</string>
     <string name="hud_delete_short">刪除</string>

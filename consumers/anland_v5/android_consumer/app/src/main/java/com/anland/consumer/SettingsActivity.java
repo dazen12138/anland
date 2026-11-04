@@ -99,6 +99,7 @@ public class SettingsActivity extends Activity {
     private static final String KEY_DISABLE_MULTI_FINGER_GESTURES =
             "disable_multi_finger_gestures";
     private static final String KEY_PAD_TAP = "pad_tap";
+    private static final String KEY_PAD_RIGHT_ZONE = "pad_right_zone";
     private static final String KEY_PAD_SCROLL_GUARD_MS = "pad_scroll_guard_ms";
     private static final String KEY_PAD_DEBUG = "pad_debug";
 
@@ -1231,6 +1232,24 @@ public class SettingsActivity extends Activity {
         padHint.setTextColor(Color.GRAY);
         padHint.setPadding(0, dp(4), 0, dp(8));
         root.addView(padHint);
+
+        // Single-button clickpads report every press as BTN_LEFT; this opts
+        // into splitting the surface into a left and a right click zone.
+        Switch rightZoneSwitch = new Switch(this);
+        rightZoneSwitch.setText(R.string.pad_right_zone);
+        rightZoneSwitch.setTextSize(14);
+        rightZoneSwitch.setPadding(0, dp(8), 0, 0);
+        rightZoneSwitch.setChecked(prefs.getBoolean(KEY_PAD_RIGHT_ZONE, false));
+        rightZoneSwitch.setOnCheckedChangeListener((v, checked) ->
+                prefs.edit().putBoolean(KEY_PAD_RIGHT_ZONE, checked).apply());
+        root.addView(rightZoneSwitch);
+
+        TextView rightZoneHint = new TextView(this);
+        rightZoneHint.setText(R.string.pad_right_zone_hint);
+        rightZoneHint.setTextSize(12);
+        rightZoneHint.setTextColor(Color.GRAY);
+        rightZoneHint.setPadding(0, dp(4), 0, dp(8));
+        root.addView(rightZoneHint);
 
         TextView guardValue = new TextView(this);
         int guard = Math.max(0, Math.min(1000,

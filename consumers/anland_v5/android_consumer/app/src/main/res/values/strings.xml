@@ -316,6 +316,8 @@
     </string-array>
     <string name="pad_tap">External touchpad: synthetic clicks</string>
     <string name="pad_tip">Controls single- and two-finger taps plus long-press drag on captured and immersive external touchpads. Physical buttons still work when disabled. The on-screen touchpad is unchanged.</string>
+    <string name="pad_right_zone">Right side of the touchpad = right click</string>
+    <string name="pad_right_zone_hint">OFF (default): pressing the right side also sends a left click, so accidental context menus are avoided; right-click stays available as a two-finger tap. ON: pressing the right half of a single-button touchpad sends a right click.</string>
     <string name="pad_guard">Ignore external touchpad taps for %1$d ms after scrolling (0 = off)</string>
     <string name="pad_debug">Touchpad debug log (AnlandTouchpad)</string>
 

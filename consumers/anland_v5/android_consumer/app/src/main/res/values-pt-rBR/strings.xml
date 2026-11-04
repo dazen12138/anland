@@ -314,6 +314,8 @@
     <string name="immersive_inputs_unavailable">Não foi possível listar os dispositivos de entrada: root foi negado ou está indisponível.</string>
     <string name="pad_tap">Touchpad externo: cliques sintéticos</string>
     <string name="pad_tip">Controla toques com um e dois dedos, além de arrastar com toque longo, em touchpads externos capturados e no modo imersivo. Os botões físicos continuam funcionando quando desativado. O touchpad na tela não muda.</string>
+    <string name="pad_right_zone">Lado direito do touchpad = clique direito</string>
+    <string name="pad_right_zone_hint">Desligado (padrão): pressionar o lado direito também envia clique esquerdo, evitando menus de contexto acidentais; o clique direito continua disponível no toque com dois dedos. Ligado: a metade direita de um touchpad de botão único envia clique direito.</string>
     <string name="pad_guard">Ignorar toques do touchpad externo por %1$d ms após rolar (0 = desligado)</string>
     <string name="pad_debug">Log de depuração do touchpad (AnlandTouchpad)</string>
     <string name="hud_delete_short">EXCL</string>
