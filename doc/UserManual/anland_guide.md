@@ -1,180 +1,172 @@
 <!--
-title: Anland User Guide
-section: Guides
+title: Anland 使用指南
+section: 指南
 order: 3
-desc: Deploy Anland on Android and connect to an Anland-enabled Wayland desktop in PRoot, chroot, or Droidspaces.
+desc: 在 Android 上部署 Anland，并连接 PRoot、chroot 或 Droidspaces 中支持 Anland 的 Wayland 桌面。
 keywords: anland, wayland, android, proot, chroot, droidspaces, kwin, mutter, kde, gnome, gpu, adreno, snapdragon
 -->
 
-# Anland User Guide
+# Anland 使用指南
 
-> [中文版](anland_guide_zh.md)
+Anland 是面向 Android 的 Wayland 显示方案，不是 Linux 容器管理器。
 
-Anland is a Wayland display solution for Android, not a Linux container manager.
+经过适配的 Linux 合成器会把画面渲染到共享 GPU 缓冲区。Android 端的 Anland 应用负责显示画面，并转发触摸、键盘、鼠标、剪贴板和音频等数据。
 
-An adapted Linux compositor renders into shared GPU buffers. The Anland Android app displays those buffers and forwards touch, keyboard, mouse, clipboard, audio, and other data.
+一条完整的 Anland 显示链路由三部分组成：
 
-A complete Anland display path has three components:
-
-| Component | Runs on | Purpose |
+| 组件 | 运行位置 | 作用 |
 | --- | --- | --- |
-| Anland Android app (consumer) | Android | Allocates and displays buffers and receives Android input. |
-| `display_daemon` | Android host | Connects the Android app and Linux compositor through a Unix domain socket. |
-| Anland-enabled compositor (producer) | Linux environment | Uses the Anland backend to render desktops such as KDE Plasma and GNOME. |
+| Anland Android 应用（consumer） | Android | 分配并显示缓冲区，接收 Android 输入。 |
+| `display_daemon` | Android 宿主 | 通过 Unix 域套接字连接 Android 应用与 Linux 合成器。 |
+| 支持 Anland 的合成器（producer） | Linux 环境 | 使用 Anland 后端渲染 KDE Plasma、GNOME 等桌面。 |
 
-PRoot, chroot, and Droidspaces are different ways to host a Linux user space. Whichever one you choose, the consumer and producer must ultimately connect to the same `display_daemon`.
+PRoot、chroot 和 Droidspaces 是承载 Linux 用户空间的不同方式。无论选择哪一种，Android consumer 与 Linux producer 最终都要连接到同一个 `display_daemon`。
 
-### 🧭 Quick navigation
+### 🧭 快速导航
 
-- [🔀 Choose a runtime](#runtime)
-- [📋 Requirements](#requirements)
-- [📱 Step 1: Install the Android side](#android-side)
-- [🐧 Step 2: Connect the Linux environment](#linux-environment)
+- [🔀 选择运行方式](#runtime)
+- [📋 前提条件](#requirements)
+- [📱 第 1 步：安装 Android 端](#android-side)
+- [🐧 第 2 步：接入 Linux 环境](#linux-environment)
   - [chroot](#chroot)
   - [Droidspaces](#droidspaces)
-- [🧩 Step 3: Install the Anland producer](#producer)
-  - [Build from source](#source-build)
-  - [Use prebuilt packages or a RootFS](#prebuilt)
-- [🚀 Step 4: Start the desktop](#start-desktop)
-- [🛠️ Troubleshooting](#troubleshooting)
+- [🧩 第 3 步：安装 Anland producer](#producer)
+  - [从源码构建](#source-build)
+  - [使用预编译包或 RootFS](#prebuilt)
+- [🚀 第 4 步：启动桌面](#start-desktop)
+- [🛠️ 常见问题](#troubleshooting)
 
 ---
 
 <a id="runtime"></a>
 
-## 🔀 Choose a runtime
+## 🔀 选择运行方式
 
-| Runtime | Root required | Covered here |
+| 运行方式 | 是否需要 Root | 本指南如何处理 |
 | --- | :---: | --- |
-| PRoot / native Termux environment | No | Uses the separate Anland: Termux project and its external guide. |
-| chroot | Yes | This guide covers the standard Anland app, host daemon, socket mapping, and producer setup. |
-| Droidspaces | Yes | Uses the built-in per-container Anland daemon and separate **Anland Display** switch, with no standalone daemon module or manual socket mapping. |
+| PRoot / Termux 原生环境 | 否 | 使用独立的 Anland: Termux 项目，跳转到其外部指南。 |
+| chroot | 是 | 本指南说明标准 Anland 应用、宿主守护进程、socket 映射和 producer 配置。 |
+| Droidspaces | 是 | 使用 Droidspaces 内置的每容器 Anland daemon 和独立 **Anland Display** 开关，无需安装独立 daemon 模块或手动映射 socket。 |
 
 ### PRoot
 
-PRoot users should follow the [Anland: Termux User Guide](https://github.com/lfdevs/anland-termux/blob/main/docs/user-guide.md).
+PRoot 用户请阅读 [Anland: Termux 中文用户指南](https://github.com/lfdevs/anland-termux/blob/main/docs/user-guide_zh.md)。
 
-That project provides its own Android app, Termux daemon, PRoot image, and startup scripts. It also supports devices without root.
+该项目提供独立的 Android 应用、Termux 守护程序、PRoot 镜像和启动脚本，也支持无 Root 设备。
 
 > [!IMPORTANT]
 >
-> Anland: Termux uses a different APK, daemon, and socket layout from the standard Anland path described below.
->
-> Follow its external guide from start to finish for PRoot; do not mix the two installation procedures.
+> Anland: Termux 与本页后续介绍的标准 Anland 路径使用不同的 APK、守护程序和 socket 布局。使用 PRoot 时请完整遵循外部指南，不要混用两套安装步骤。
 
-The rest of this page covers standard Anland deployments in chroot and Droidspaces only.
+本页余下内容只介绍标准 Anland 在 chroot 和 Droidspaces 中的部署。
 
 ---
 
 <a id="requirements"></a>
 
-## 📋 Requirements
+## 📋 前提条件
 
-Before you begin, confirm the following:
+开始前，逐项确认：
 
-- **Android 11 or later with root access.** chroot runs a standalone `display_daemon`; Droidspaces manages it through built-in integration. The Anland app normally still uses its root helper to connect to the socket.
+- **Android 11 或更高版本，并已取得 Root 权限。** chroot 使用独立 `display_daemon`；Droidspaces 由内置集成管理 daemon。应用通常仍需 Root 辅助程序连接 socket。
 
-- **An ARM64 device and Linux environment.** The current APK, daemon, and producer builds target AArch64/ARM64.
+- **ARM64 设备与 Linux 环境。** 当前 APK、daemon 和 producer 构建面向 AArch64/ARM64。
 
-- **An Anland-enabled compositor.** Stock KWin and Mutter packages do not include the Anland backend. Install a patched version supplied by the project.
+- **支持 Anland 的合成器。** 普通发行版自带的 KWin 或 Mutter 不含 Anland 后端，需安装项目提供的补丁版本。
 
-- **Working GPU devices and drivers.** Snapdragon/Adreno devices are recommended. Linux must expose `/dev/dri/renderD128` and the corresponding KGSL/Mesa drivers. Other platforms may be limited to software rendering or may not start the desktop, depending on driver support.
+- **GPU 设备和驱动可用。** 推荐 Snapdragon / Adreno，并确保 Linux 环境能访问 `/dev/dri/renderD128` 及对应的 KGSL/Mesa 驱动。其他平台的支持取决于驱动，可能只能软件渲染或无法启动桌面。
 
-- **Compatible component versions.** A protocol update may require updating the Android app and producer together. The standalone chroot daemon should also be from a similar release period; avoid mixing components from widely separated versions.
+- **组件版本兼容。** 协议更新时，Android 应用和 producer 可能需要一起更新。chroot 使用的独立 daemon 也应与其他组件版本接近。
 
 > [!NOTE]
 >
-> Anland only bridges display, input, and related data. It does not create the Linux environment, install a complete desktop, configure chroot mounts, or provide GPU drivers.
+> Anland 只负责显示与输入等桥接能力，不负责创建 Linux 环境、安装完整桌面、配置 chroot 挂载或提供 GPU 驱动。
 
 > [!IMPORTANT]
 >
-> To use **Settings > Connection > Enable foreground scheduling (root)** in the Android app, the device kernel must enable:
+> 使用 Android 应用中的“设置 → 连接 → 启用前台调度（root）”时，设备内核必须启用：
 >
 > ```config
 > CONFIG_UNIX_DIAG=y
 > CONFIG_PROC_CHILDREN=y
 > ```
 >
-> `CONFIG_UNIX_DIAG` lets Anland locate the Linux-side process through the Unix domain socket. `CONFIG_PROC_CHILDREN` lets it walk the process tree.
+> `CONFIG_UNIX_DIAG` 用于定位 Unix 域套接字对端进程；`CONFIG_PROC_CHILDREN` 用于遍历进程树。
 >
-> These options are used only for foreground scheduling. They are not required for Anland's basic display path.
+> 这两项只供前台调度使用，不是基本显示链路的要求。
 
 ---
 
 <a id="android-side"></a>
 
-## 📱 Step 1: Install the Android side
+## 📱 第 1 步：安装 Android 端
 
-Both chroot and Droidspaces users need the `anland-v5.apk` from the [latest Anland release](https://github.com/superturtlee/anland/releases/latest).
+chroot 和 Droidspaces 用户都需要先安装 [Anland 最新 Release](https://github.com/superturtlee/anland/releases/latest) 中的 `anland-v5.apk`，再按运行方式完成配置。
 
-Install the APK, then complete the setup for your chosen runtime.
+### chroot 使用的 Android 端
 
-### Android side for chroot
+1. **下载并安装 daemon 模块。** 从最新成功的 [Build APK and Daemon](https://github.com/superturtlee/anland/actions/workflows/build.yml) 构建中下载 `anland-daemon`，再用支持 Magisk 模块的 Root 管理器安装 ZIP。
 
-1. **Download and install the daemon module.** Download `anland-daemon` from the latest successful [Build APK and Daemon](https://github.com/superturtlee/anland/actions/workflows/build.yml) run. Install the ZIP with a root manager that supports the Magisk module format.
-
-2. **Restart and check the socket.** From a root shell, confirm that the default socket was created:
+2. **重启并检查 socket。** 在 Root 终端运行：
 
    ```sh
    su -c 'test -S /data/local/tmp/display_daemon.sock && echo "Anland daemon is ready"'
    ```
 
-3. **Check Anland Settings.** Confirm these connection options:
+3. **检查 Anland 设置。** 确认连接选项为：
 
-   - **Daemon socket path**: keep the default `/data/local/tmp/display_daemon.sock`.
-   - **Connect with root (helper)**: keep this enabled and grant Anland permission in your root manager.
+   - **守护进程套接字路径**：保持默认的 `/data/local/tmp/display_daemon.sock`。
+   - **使用 root 连接（辅助程序）**：保持开启，并在 Root 管理器中授予 Anland 权限。
 
 > [!NOTE]
 >
-> Some releases include only the APK. In that case, download `anland-daemon` from a recent successful Actions build.
->
-> If you also use a build APK, prefer getting `anland-v5` and `anland-daemon` from the same run.
+> 部分 Release 只提供 APK，不含 daemon 模块。此时从近期成功的 Actions 构建下载 `anland-daemon`；如果也使用构建 APK，优先从同一次构建下载两者。
 
-### Android side for Droidspaces
+### Droidspaces 使用的 Android 端
 
-The Droidspaces [`anland` branch](https://github.com/ravindu644/Droidspaces-OSS/tree/anland) includes built-in Anland integration and is planned for merging into `main`.
+Droidspaces 的 [`anland` 分支](https://github.com/ravindu644/Droidspaces-OSS/tree/anland)已实现 Anland 内置集成，并计划合并到 `main`。
 
-These instructions apply to builds with a separate **Anland Display** switch. After the feature is merged, use a `main` build that includes it.
+以下步骤适用于带独立 **Anland Display** 开关的构建；该功能合并后，也可使用包含它的 `main` 版本。
 
-- **Install the Anland APK only.** Do not install the separate `anland-daemon` module. Droidspaces starts an independent daemon for each container with Anland enabled.
+- **只安装 Anland APK。** 不需要单独安装 `anland-daemon`；Droidspaces 会为启用 Anland 的容器启动独立 daemon。
 
-- **Grant root access when asked.** Do not enter the container socket manually; **Launch Anland** passes its dynamic path to the app.
+- **授予 Root 权限。** 不要手动填写 socket；**Launch Anland** 会把当前容器的动态路径传给应用。
 
-- **Open Anland from Droidspaces.** The Anland launcher icon uses the global default socket, while Droidspaces uses a separate socket for each container.
+- **从 Droidspaces 启动。** 不要点击 Anland 桌面图标，因为它使用全局默认 socket，而 Droidspaces 为每个容器使用独立 socket。
 
-For a complete description of the app settings, see the [Anland Settings Guide](anland_settings_guide.md).
+完整的应用设置说明见 [Anland 设置使用说明](anland_settings_guide.md)。
 
 ---
 
 <a id="linux-environment"></a>
 
-## 🐧 Step 2: Connect the Linux environment
+## 🐧 第 2 步：接入 Linux 环境
 
-Regardless of the runtime, the Anland producer connects to the same path inside the Linux environment:
+无论使用哪种运行方式，Anland producer 都连接 Linux 环境中的同一路径：
 
 ```text
 /run/display.sock
 ```
 
-**chroot** maps the Android host's default socket to that path:
+**chroot** 需要把 Android 宿主的默认 socket 映射到该路径：
 
 ```text
 /data/local/tmp/display_daemon.sock -> /run/display.sock
 ```
 
-Droidspaces creates a separate socket for each container under the host's `/data/local/tmp` directory (for example, `anland-<UUID>.sock`) and automatically bind-mounts it at `/run/display.sock` inside the container.
+Droidspaces 会在宿主的 `/data/local/tmp` 下为每个容器创建独立 socket（例如 `anland-<UUID>.sock`），并自动绑定到容器内的 `/run/display.sock`。
 
-You do not need to inspect, enter, or manually map this dynamic host path. The startup scripts below connect to the daemon through `ANLAND_SOCKET=/run/display.sock`.
+无需查看、填写或手动映射这个动态宿主路径。后续启动脚本统一通过 `ANLAND_SOCKET=/run/display.sock` 连接守护进程。
 
 <a id="chroot"></a>
 
 ### chroot
 
-Before you begin, confirm that you can enter the chroot and that it mounts `/proc`, `/sys`, `/dev`, and `/dev/pts`.
+开始前，请确认 chroot 已能正常进入，并已挂载 `/proc`、`/sys`、`/dev` 和 `/dev/pts`。
 
-These are basic chroot mounts; Anland does not configure them for you.
+这些是 chroot 的基础挂载，Anland 不会替你配置。
 
-1. **Map the daemon socket.** In an Android root shell, change `CHROOT_ROOT` to the actual RootFS path, then run:
+1. **映射 daemon socket。** 在 Android Root 终端中，将 `CHROOT_ROOT` 改为实际 RootFS 路径，然后运行：
 
    ```sh
    CHROOT_ROOT=/data/local/chroot/debian
@@ -187,92 +179,92 @@ These are basic chroot mounts; Anland does not configure them for you.
      "$CHROOT_ROOT/run/display.sock"
    ```
 
-2. **Provide GPU device nodes.** Make sure the GPU is accessible inside the chroot. Adreno devices normally require at least `/dev/dri/renderD128` and `/dev/kgsl-3d0`; your chroot startup script should handle the exact mounts and permissions.
+2. **提供 GPU 设备节点。** 确保 chroot 内可访问 GPU。Adreno 设备通常至少需要 `/dev/dri/renderD128` 和 `/dev/kgsl-3d0`；由 chroot 启动脚本处理具体挂载与权限。
 
-3. **Verify the mapping.** Enter the chroot and confirm that the socket and render node exist:
+3. **检查映射。** 进入 chroot 后确认 socket 和渲染节点存在：
 
    ```sh
    test -S /run/display.sock
    test -e /dev/dri/renderD128
    ```
 
-4. **Install and start the producer.** Follow the next section to install the Anland producer, then start the desktop session as a normal Linux user.
+4. **安装并启动 producer。** 按下一节安装 Anland producer，再以 Linux 普通用户启动桌面会话。
 
 > [!NOTE]
 >
-> The socket is a runtime file. After Android restarts or the daemon recreates it, the chroot startup script must recreate the bind mount.
+> socket 是运行时文件。Android 重启或 daemon 重建 socket 后，chroot 启动脚本需要重新建立绑定挂载。
 
 <a id="droidspaces"></a>
 
 ### Droidspaces
 
-Install the Anland APK and use a Droidspaces build that includes the separate **Anland Display** switch. For now, use the `anland` branch; after the feature is merged, use a `main` build that includes the switch.
+先安装 Anland APK，并使用包含独立 **Anland Display** 开关的 Droidspaces 构建：目前使用 `anland` 分支；功能合并后使用包含该开关的 `main` 版本。
 
-Then edit the target container and apply these settings:
+然后编辑目标容器并完成以下设置：
 
-1. **Enable GPU Access.** Also enable **Hardware Access** if your RootFS or device explicitly requires full hardware mapping.
+1. **启用 GPU 访问。** 如果 RootFS 或设备明确要求完整硬件映射，再启用 **硬件访问**。
 
-2. **Enable Anland Display.** This is the per-container switch that starts Anland in Droidspaces.
+2. **启用 Anland Display。** 这是 Droidspaces 为该容器启动 Anland 的独立开关。
 
-3. **Disable Configure Termux:X11.** Anland and Termux:X11 use separate display paths; configuring both can cause environment-variable or service conflicts.
+3. **关闭配置 Termux:X11。** Anland 和 Termux:X11 使用不同的显示链路；同时配置可能引起环境变量或服务冲突。
 
-4. **Start the container and check the devices.** Confirm that the socket and GPU node were created automatically:
+4. **启动容器并检查设备。** 确认 socket 和 GPU 节点已自动创建：
 
    ```sh
    test -S /run/display.sock
    test -e /dev/dri/renderD128
    ```
 
-5. **Open the Anland window.** After starting the producer, select **Launch Anland** on the running-container card or container details page. Some versions label this button `anland`. Droidspaces passes the container's dynamic socket path to Anland and opens a separate window.
+5. **打开 Anland 窗口。** 启动 producer 后，在运行中容器卡片或容器详情页点击 **Launch Anland**（部分版本显示为 `anland`）。Droidspaces 会传入该容器的动态 socket 路径并打开独立窗口。
 
 > [!IMPORTANT]
 >
-> The **Anland Display** switch starts Droidspaces' built-in per-container daemon and automatically bind-mounts it at `/run/display.sock` inside the container. Do not add a manual mapping for `/data/local/tmp/display_daemon.sock`, and do not change Anland's global default path to a Droidspaces dynamic socket.
+> **Anland Display** 开关会启动 Droidspaces 内置的每容器 daemon，并自动将它绑定到容器内的 `/run/display.sock`。不要再添加 `/data/local/tmp/display_daemon.sock` 的手动绑定，也不要在 Anland 设置中把全局默认路径改成 Droidspaces 的动态 socket。
 
-### Recommended Droidspaces settings
+### Droidspaces 推荐设置
 
 - **PulseAudio**
 
-  Keep **Configure PulseAudio** disabled. The Anland producer connects through PipeWire to Anland's audio path, so Droidspaces does not need to configure PulseAudio separately.
+  关闭“配置 PulseAudio”。Anland producer 通过 PipeWire 接入 Anland 音频链路，不需要 Droidspaces 另外配置 PulseAudio。
 
-  If the container used PulseAudio before, remove the existing `PULSE_SERVER` environment variable too.
+  如果容器以前配置过 PulseAudio，也请删除已有的 `PULSE_SERVER` 环境变量。
 
 - **SELinux**
 
-  Prefer to keep SELinux enforcing. Droidspaces' Anland integration includes the corresponding policy. Use permissive mode temporarily only after confirming that an AVC denial is related to Anland.
+  优先保持 enforcing。Droidspaces 的 Anland 集成已包含对应策略；只有确认 AVC 拒绝与 Anland 有关时，才临时使用宽容模式排障。
 
-- **Container privilege options**
+- **容器特权选项**
 
-  Follow the RootFS requirements for `nocaps` or `noseccomp`. Some combinations need these compatibility settings, but they are not requirements of the Anland protocol.
+  按 RootFS 要求选择 `nocaps` 或 `noseccomp`。部分组合需要这些兼容设置，但它们不是 Anland 协议的要求。
 
-- **KDE Plasma on Debian/Ubuntu**
+- **Debian / Ubuntu 上的 KDE Plasma**
 
-  Confirm that the kernel has User Namespace support enabled. If Plasma is noticeably sluggish or input is delayed, check the `noseccomp` setting required by your Droidspaces version.
+  确认内核启用了 User Namespace。若 Plasma 明显卡顿或操作延迟，再检查当前 Droidspaces 版本要求的 `noseccomp` 设置。
 
 ---
 
 <a id="producer"></a>
 
-## 🧩 Step 3: Install the Anland producer
+## 🧩 第 3 步：安装 Anland producer
 
-The desktop in the Linux environment must use a compositor with an Anland backend. The current Anland source tree primarily maintains a KWin backend for KDE Plasma and a Mutter backend for GNOME.
+Linux 环境中的桌面必须使用带 Anland 后端的合成器。当前 Anland 源码树主要维护 KDE Plasma 的 KWin 后端和 GNOME 的 Mutter 后端。
 
 <a id="source-build"></a>
 
-### Build from source
+### 从源码构建
 
-This installation method is provided by the Anland project. Use it when you need to inspect patches, debug a backend, or build the packages yourself.
+这是 Anland 项目提供的安装方式，适合需要检查补丁、调试后端或自行构建软件包的用户。
 
-1. **Get the source.** Run these commands inside the chroot or Droidspaces container:
+1. **获取源码。** 在 chroot 或 Droidspaces 容器中运行：
 
    ```sh
    git clone https://github.com/superturtlee/anland.git
    cd anland
    ```
 
-2. **Choose a build directory.** Select the directory for your desktop and distribution:
+2. **选择构建目录。** 根据桌面和发行版选择对应目录：
 
-   | Desktop | Distribution | Directory |
+   | 桌面 | 发行版 | 目录 |
    | --- | --- | --- |
    | KDE Plasma | Debian 13 | `producers/kde/Debian13_v5` |
    | KDE Plasma | Ubuntu 26.04 | `producers/kde/ubuntu2604_v5` |
@@ -281,85 +273,85 @@ This installation method is provided by the Anland project. Use it when you need
    | GNOME | Debian 13 | `producers/gnome/Debian13_v5` |
    | GNOME | Ubuntu 26.04 | `producers/gnome/Ubuntu2604_v5` |
 
-3. **Run the build script.** Enter the selected directory and run `build.sh`. For KDE on Debian 13:
+3. **运行构建脚本。** 进入所选目录并执行 `build.sh`。例如 Debian 13 KDE：
 
    ```sh
    cd producers/kde/Debian13_v5
    ./build.sh
    ```
 
-The script installs build dependencies, obtains the distribution sources, applies the Anland patches, and builds and installs the packages.
+脚本会安装编译依赖、获取发行版源码、应用 Anland 补丁，并构建和安装软件包。
 
-Make sure the current user can use `sudo` before running it. Building KWin, Mutter, and Xwayland takes considerable time and storage space.
+运行前请确认当前用户可以使用 `sudo`。构建 KWin、Mutter 和 Xwayland 需要较长时间，也需要足够的存储空间。
 
 <a id="prebuilt"></a>
 
-### Use prebuilt packages or a RootFS
+### 使用预编译包或 RootFS
 
-If you do not want to compile on the device, use third-party prebuilt packages or a RootFS with the producer already integrated.
+如果不想在设备上编译，可以使用第三方维护的预编译包，或已集成 producer 的 RootFS。
 
-[Droidspaces RootFS Desktop Builder](https://github.com/Goldzxcbug/Droidspaces-rootfs-Desktop-builder) provides:
+[Droidspaces RootFS Desktop Builder](https://github.com/Goldzxcbug/Droidspaces-rootfs-Desktop-builder) 提供以下产物：
 
-- **KDE installers:** Debian 13, Ubuntu 26.04, Fedora 43/44, and Arch Linux ARM64.
+- **KDE 安装器**：支持 Debian 13、Ubuntu 26.04、Fedora 43/44 和 Arch Linux ARM64。
 
-- **GNOME installers:** Debian 13 and Ubuntu 26.04 ARM64.
+- **GNOME 安装器**：支持 Debian 13 和 Ubuntu 26.04 ARM64。
 
-- **Droidspaces RootFS images:** include the Anland producer and can also be built through GitHub Actions.
+- **Droidspaces RootFS**：已集成 Anland producer，也可以通过 GitHub Actions 自行构建。
 
-#### Use a packaged RootFS directly
+#### 直接使用已经打包好的 RootFS
 
-This is the simplest option: you do not need to prepare a Linux system or run `build.sh` or a producer installer on the device.
+这是最省事的方式：无需先准备 Linux 系统，也无需在设备上运行 `build.sh` 或 producer 安装器。
 
-1. **Download a RootFS.** Open the project's [Releases](https://github.com/Goldzxcbug/Droidspaces-rootfs-Desktop-builder/releases) and choose a `.tar.xz` image marked `Wayland`, with KDE, KDE Mobile, or GNOME as needed.
+1. **下载 RootFS。** 打开项目的 [Releases](https://github.com/Goldzxcbug/Droidspaces-rootfs-Desktop-builder/releases)，选择带 `Wayland` 标记的 `.tar.xz` 文件，以及需要的 KDE、KDE Mobile 或 GNOME 桌面。
 
-2. **Import it into Droidspaces.** Select the downloaded RootFS in the app.
+2. **导入 Droidspaces。** 将下载的 RootFS 导入应用。
 
-3. **Configure the container.** Follow [Droidspaces configuration](#droidspaces) to enable GPU access and **Anland Display**. Droidspaces manages the daemon and `/run/display.sock` mapping automatically.
+3. **配置容器。** 按本指南的 [Droidspaces 配置](#droidspaces)启用 GPU 访问和 **Anland Display**。daemon 与 `/run/display.sock` 映射由 Droidspaces 自动管理。
 
-4. **Start the desktop.** Start the container, then continue to [Step 4: Start the desktop](#start-desktop). The RootFS already includes the patched compositor, Anland environment configuration, and desktop startup command, so you do not need to install the producer again.
+4. **启动桌面。** 启动容器后直接进入[第 4 步：启动桌面](#start-desktop)。RootFS 已包含补丁版合成器、Anland 环境配置和桌面启动命令，无需重复安装 producer。
 
-An example filename is:
+文件名类似：
 
 ```text
 Ubuntu-26-kde-Wayland-Droidspaces-rootfs-aarch64-v20260702-120000.tar.xz
 ```
 
-#### Install prebuilt packages in an existing Linux environment
+#### 在现有 Linux 环境中安装预编译包
 
-You can run the project's installers separately in an existing Linux environment. First clone the project:
+在现有 Linux 环境中可以单独运行其安装器。先拉取项目：
 
 ```sh
 git clone https://github.com/Goldzxcbug/Droidspaces-rootfs-Desktop-builder.git
 cd Droidspaces-rootfs-Desktop-builder
 ```
 
-KDE Plasma users should run:
+KDE Plasma 用户运行：
 
 ```sh
 sudo ./scripts/install-anland-kde.sh
 ```
 
-GNOME users should run:
+GNOME 用户改为运行：
 
 ```sh
 sudo ./scripts/install-anland-gnome.sh
 ```
 
-These installers and RootFS images are maintained by an external project; they are not part of an Anland release. Check that your distribution, version, and architecture are in that project's support matrix before using them.
+这些安装器和 RootFS 由外部项目维护，不属于 Anland Release。使用前请核对发行版、版本和架构是否在其支持范围内。
 
 ---
 
 <a id="start-desktop"></a>
 
-## 🚀 Step 4: Start the desktop
+## 🚀 第 4 步：启动桌面
 
-**For a producer built from source:** run `startup.sh` from the selected producer directory. It sets the main Anland environment variables. To use the default socket, run:
+**从源码构建的 producer：** 在所选 producer 目录中运行 `startup.sh`。脚本会设置 Anland 所需的主要环境变量；默认 socket 的启动命令如下：
 
 ```sh
 ./startup.sh /run/display.sock
 ```
 
-The script normally sets these variables:
+脚本通常会设置以下变量：
 
 ```text
 ANLAND=1
@@ -367,99 +359,99 @@ ANLAND_SOCKET=/run/display.sock
 ANLAND_DRM_DEVICE=/dev/dri/renderD128
 ```
 
-**For a prebuilt RootFS:** use the desktop startup command it provides. For example, start the KDE environment from Droidspaces RootFS Desktop Builder with:
+**使用预构建 RootFS：** 优先运行镜像提供的桌面启动命令。例如，Droidspaces RootFS Desktop Builder 的 KDE 环境可运行：
 
 ```sh
 startplasma-wayland
 ```
 
-After the producer starts, open the Android-side window:
+producer 启动后，再打开 Android 端窗口：
 
-- **chroot:** open or switch back to the Anland Android app.
+- **chroot：** 打开或切回 Android 的 Anland 应用。
 
-- **Droidspaces:** select **Launch Anland** on the running-container card or container details page. Do not open the Anland launcher icon; only the Droidspaces action passes the container's dynamic socket path to Anland.
+- **Droidspaces：** 在运行中容器卡片或容器详情页点击 **Launch Anland**。不要直接点击 Anland 桌面图标；只有 Droidspaces 操作会传入该容器的动态 socket 路径。
 
-The desktop appears automatically once the consumer and producer are connected.
+consumer 与 producer 连接成功后，桌面画面会自动出现。
 
 > [!IMPORTANT]
 >
-> Do not start the session with your distribution's unpatched `kwin_wayland` or Mutter. A normal Wayland compositor will not submit frames to Anland even if it starts successfully.
+> 不要用发行版自带、未经 Anland 补丁处理的 `kwin_wayland` 或 Mutter 启动会话。普通 Wayland 合成器即使成功启动，也不会向 Anland 提交画面。
 
 ---
 
 <a id="troubleshooting"></a>
 
-## 🛠️ Troubleshooting
+## 🛠️ 常见问题
 
-### Anland opens only Settings or reports that it cannot connect
+### Anland 只打开设置页，或提示无法连接
 
-**chroot:** check the default host socket from an Android root shell:
+**chroot：** 在 Android Root 终端检查默认宿主 socket：
 
 ```sh
 su -c 'test -S /data/local/tmp/display_daemon.sock'
 ```
 
-If the socket does not exist, check that the `anland-daemon` module is enabled and restart the device if needed.
+如果 socket 不存在，请检查 `anland-daemon` 模块是否启用，并确认设备已重启。
 
-If it exists, confirm that:
+如果 socket 存在，请确认：
 
-- The socket path in Anland Settings is correct.
-- **Connect with root (helper)** is enabled and root permission has not been denied.
+- Anland 设置中的 socket 路径正确。
+- **使用 root 连接**已开启，且 Root 管理器没有拒绝授权。
 
-**Droidspaces:** do not check or enter the global default socket. Confirm each item:
+**Droidspaces：** 不要检查或填写全局默认 socket。请逐项确认：
 
-1. The Droidspaces build includes the separate **Anland Display** switch, from the `anland` branch or a `main` build with the feature merged.
+1. Droidspaces 使用带独立 **Anland Display** 开关的 `anland` 分支构建，或已合并该功能的 `main` 版本。
 
-2. **Anland Display** is enabled for the target container, and the container is running.
+2. 目标容器已启用 **Anland Display**，并且正在运行。
 
-3. `/run/display.sock` exists inside the container.
+3. 容器内存在 `/run/display.sock`。
 
-4. You opened the window with Droidspaces' **Launch Anland** action or `anland` button, not the Anland launcher icon.
+4. 通过 Droidspaces 的 **Launch Anland** 或 `anland` 按钮打开窗口，而不是点击 Anland 桌面图标。
 
-If a running container has no Anland launch button, that Droidspaces version may not include the integration, or the container's daemon/socket may not have started.
+如果运行中容器没有 Anland 启动按钮，通常是当前 Droidspaces 版本尚未包含集成，或该容器的 daemon/socket 未能启动。
 
-### The app connects but no desktop appears
+### 应用已连接，但没有桌面画面
 
-Check inside the Linux environment:
+在 Linux 环境中检查：
 
 ```sh
 test -S /run/display.sock
 printf '%s\n' "$ANLAND_SOCKET"
 ```
 
-Confirm that you started an Anland-patched KWin or Mutter, then inspect the producer's terminal output.
+确认启动的是经过 Anland 补丁处理的 KWin 或 Mutter，并查看 producer 的终端日志。
 
-Common causes include:
+常见原因包括：
 
-- The socket was not mapped into the Linux environment.
-- `ANLAND_SOCKET` points to the wrong path.
-- A system update replaced the patched packages.
+- socket 没有映射进 Linux 环境。
+- `ANLAND_SOCKET` 指向错误。
+- 系统更新覆盖了补丁版软件包。
 
-### The desktop fails to start or uses only software rendering
+### 桌面启动失败或只能软件渲染
 
-First confirm that the Linux environment can access `/dev/dri/renderD128`. Adreno devices also need an available KGSL node and matching Mesa drivers.
+先确认 Linux 环境可以访问 `/dev/dri/renderD128`。Adreno 设备还需要可用的 KGSL 节点和匹配的 Mesa 驱动。
 
-- **Droidspaces:** recheck GPU/Hardware Access settings.
-- **chroot:** check device-node mounts and user permissions.
+- **Droidspaces：** 复查 GPU/硬件访问设置。
+- **chroot：** 检查设备节点挂载和用户权限。
 
-### KDE Plasma is noticeably sluggish
+### KDE Plasma 明显卡顿
 
-Check these items in order:
+按以下顺序检查：
 
-1. On Debian or Ubuntu, confirm that User Namespace support is enabled in the kernel.
-2. With Droidspaces, check the `noseccomp` setting required by your version.
-3. If SELinux may be blocking access, inspect AVC logs and fix the specific permission. Do not leave SELinux in permissive mode.
+1. Debian 或 Ubuntu：确认内核启用了 User Namespace。
+2. Droidspaces：检查当前版本要求的 `noseccomp` 设置。
+3. 如果怀疑 SELinux 拦截，先检查 AVC 日志并修复对应权限；不要长期保持 permissive 模式。
 
-### Foreground scheduling has no effect
+### 前台调度没有生效
 
-Check each requirement:
+逐项确认：
 
-- **Enable foreground scheduling (root)** is on under **Settings > Connection**.
-- Your root manager has granted Anland permission.
-- The device kernel enables `CONFIG_UNIX_DIAG=y` and `CONFIG_PROC_CHILDREN=y`.
+- Android 设置中的“连接 → 启用前台调度（root）”已开启。
+- Root 管理器已向 Anland 授权。
+- 设备内核启用了 `CONFIG_UNIX_DIAG=y` 和 `CONFIG_PROC_CHILDREN=y`。
 
-Without either kernel option, Anland may not locate or walk the Linux desktop processes. After changing the kernel configuration, establish a new desktop connection and check again.
+缺少任一内核选项时，Anland 可能无法定位或遍历 Linux 桌面进程。调整内核配置后，请重新建立桌面连接再检查效果。
 
-### You need to adjust input, resolution, audio, or window behavior
+### 需要调整输入、分辨率、音频或窗口行为
 
-See the [Anland Settings Guide](anland_settings_guide.md). Settings are normally saved immediately, but connection, audio, and output-resolution options take effect on the next connection.
+参阅 [Anland 设置使用说明](anland_settings_guide.md)。设置修改后通常会立即保存，但连接、音频和输出分辨率等项目需要在下一次连接时生效。

@@ -1,137 +1,140 @@
-# HUD Controls User Guide
+# HUD 浮动控件使用手册
 
-> [中文版](hud_guide_zh.md) · [Settings guide](anland_settings_guide.md)
+> [设置使用说明](anland_settings_guide.md)
 
-The HUD provides touch buttons and pointer controls over the Linux desktop in Anland. This guide describes the current Android app. Shortcut results also depend on your Linux desktop and application bindings.
+HUD 是显示在 Anland Linux 桌面上的触控按键和指针控件。本手册以当前 Android 应用为准；可用的快捷键效果也取决于 Linux 桌面和应用的键位设置。
 
-## Getting started
+## 开始使用
 
-1. Open **Settings → Keyboard & Keys** in the Android app and enable **Show floating HUD controls**.
-2. Tap **Edit floating control layout**. The editor opens on a black canvas; opening it also enables the HUD switch.
-3. Tap **ADD** and choose a control. Drag it to move it; tap it to open its properties. Tap **SAVE**, then **EXIT** when finished.
-4. Return to the desktop to use the controls. Rotate the device to edit and save the other orientation.
+1. 在 Android 应用中打开 **设置 → 键盘与按键**，开启 **显示浮动 HUD 控件**。
+2. 点击 **编辑浮动控件布局**。编辑器打开黑色画布；进入编辑器也会开启 HUD 显示开关。
+3. 点击 **添加**，选择控件。拖动控件移动；点击控件打开属性面板。完成后点击 **保存**，再点击 **退出**。
+4. 回到桌面操作控件。如果要为另一方向配置，旋转设备后重复编辑并保存。
 
-HUD layout edits require saving in the editor. Keyboard settings and positions are stored separately and do not depend on the layout Save button. Discarding on exit applies to unsaved HUD layout changes.
+编辑器的 HUD 布局更改需要保存；键盘设置及键盘位置单独存储，不依赖布局保存按钮。退出时的放弃操作针对未保存的 HUD 布局更改。
 
-## Editor toolbar
+## 编辑器工具栏
 
-| Button | Purpose |
+| 按钮 | 作用 |
 | --- | --- |
-| **SAVE** | Save the HUD layout profile and continue editing. |
-| **ADD** | Open the control list and place the selected control on the canvas. |
-| **LAYOUT** | Open the copy, preset, and clear menu described below. |
-| **EXIT** | Leave the editor. If the layout has unsaved changes, choose **SAVE & EXIT**, **DISCARD**, or **CANCEL**. Android Back also exits. |
-| **Edit keyboard** | Switch to the virtual keyboard and its dedicated HUD keyboard layer. |
-| **Back to HUD** | Return from the keyboard layer to the regular HUD layer. |
-| **Keyboard settings** | Shown on the keyboard layer; opens split, appearance, and wing-key settings. |
+| **保存** | 保存 HUD 布局配置；可继续编辑。 |
+| **添加** | 打开控件类型列表，选择后将控件放到画布上。 |
+| **布局** | 打开方向复制、预设和清空菜单，详见下文。 |
+| **退出** | 离开编辑器。有未保存的布局更改时，选择 **保存并退出**、**放弃** 或 **取消**。Android 返回键也可退出。 |
+| **编辑键盘** | 切换到虚拟键盘及其专用 HUD 键盘层。 |
+| **返回 HUD** | 从键盘层切回普通 HUD 层。 |
+| **键盘设置** | 仅在键盘层显示；打开分体、外观和翼键设置。 |
 
-### Layout menu
+拖动控件时会自动吸附对齐。
 
-| Option | Purpose |
+### “布局”菜单
+
+| 选项 | 作用 |
 | --- | --- |
-| **Copy Portrait Layout Here / Copy Landscape Layout Here** | Replace the current layer's controls with the other orientation's regular HUD layout. Even on the keyboard layer, the source is the regular HUD, not the other orientation's keyboard layer. |
-| **Desktop / Productivity Preset** | Load a mouse TrackPoint, keyboard shortcuts, and window controls. |
-| **User Portrait Hotkeys Layout** | Load the built-in portrait shortcut layout, including on a landscape canvas. |
-| **Clear Active Layout** | Remove all controls in the current layer and orientation. |
+| **切换布局 1 / 2 / 3** | 选择要编辑或使用的自定义布局。 |
+| **将竖屏布局复制到此处 / 将横屏布局复制到此处** | 将另一方向的普通 HUD 布局复制到当前图层，替换当前控件。即使正在编辑键盘层，来源仍是普通 HUD，而非另一方向的键盘层。 |
+| **桌面 / 办公预设** | 加载鼠标指点杆、键盘快捷键和窗口操作控件。 |
+| **用户竖屏快捷键布局** | 加载内置的竖屏快捷键布局，也可用于当前横屏画布。 |
+| **清空当前布局** | 移除当前图层和方向的所有控件。 |
 
-These options immediately replace the current canvas controls; save afterwards to keep them. Before saving, you can exit and discard unsaved changes to restore the saved layout.
+这些选项会立即替换当前画布的控件，之后仍须保存。需要恢复时，可在尚未保存的情况下退出并选择放弃。
 
-## Add menu and controls
+## “添加”菜单及操作方式
 
-| Control | How to use it on the desktop |
+| 控件 | 桌面中的使用方式 |
 | --- | --- |
-| **Standard Key Button** | Press to send its main action. Swipe up for a configured popup action. Repeating while held can be enabled. |
-| **Super Gesture Nub** | Tap for the main action; swipe left, right, up, or down for the corresponding assigned action. |
-| **TrackPoint (Mouse / Scroll)** | Hold your finger away from the center to continuously move the pointer or scroll; release to stop. A quick tap sends left click. |
-| **Steam Deck Trackpad** | Slide one finger to move; tap for left click; hold or tap with two fingers for right click. Slide two fingers to scroll, or double-tap and drag to hold the left button while dragging. |
-| **Scroll Bar** | Drag along the control to scroll; switch between vertical and horizontal in properties. |
-| **D-Pad (Sliding Cross)** | Hold a direction or slide to another; diagonals are supported. Release to release the directions. Defaults to keyboard arrow keys; customize each direction independently in properties. |
-| **Group container** | Automatically arrange standard keys together and drag the container to move the group. |
+| **标准按键** | 按下发送主动作；配置弹出动作后，从按键向上滑触发弹出动作。可设置按住连续发送。 |
+| **Super 手势区域** | 轻点触发主动作，向左、右、上、下滑可分别触发对应动作。 |
+| **TrackPoint（鼠标 / 滚动）** | 将手指偏离中心并按住，持续移动指针或滚动；松开停止。短按发送鼠标左键。 |
+| **Steam Deck 触摸板** | 单指滑动移动指针，单击为左键，长按或双指轻点为右键；双指滑动滚动，双击后拖动可按住左键拖拽。 |
+| **滚动条** | 沿控件拖动以滚动；在属性中切换竖向或横向。 |
+| **方向键（滑动十字）** | 按住方向或滑向其他方向，支持斜向；松开释放方向。默认发送键盘上下左右方向键；四个方向可在属性面板中分别自定义。 |
+| **聚合容器** | 把标准按键自动排列成一组，拖动容器可整体移动。 |
 
-## Properties panel
+## 属性面板
 
-Tap a control on the canvas to open its panel. Drag the header to move it or drag the bottom-right corner to resize it; the size is saved automatically. Tap the close button to dismiss it. Options vary by control.
+点击画布上的控件打开面板；点击其他控件可切换选中项，点击空白处不会关闭面板。拖动标题栏可移动面板，拖动右下角可调整面板大小，尺寸会自动保存；点击关闭按钮收起。不同控件显示的选项不同。
 
-| Item or button | Purpose |
+| 项目或按钮 | 作用 |
 | --- | --- |
-| **Display Label** | Change the visible text without changing the action. |
-| **Appearance** | Open size, corner, opacity and color settings. |
-| **Width, Height (dp)** | Adjust size with a slider or numeric input. dp is a density-related size unit. |
-| **Corner (dp)** | Adjust corner roundness. |
-| **Opacity (%)** | Adjust visibility; lower values are more transparent. |
-| **Main Action** | Tap its action button to choose an action; hold the button to clear it. |
-| **Popup Action (Swipe Up)** | Action for swiping up on a standard key; tap to choose or hold to clear. |
-| **Swipe Actions: Left / Right / Up / Down** | Actions for each Super Gesture or sliding-cross direction; tap to choose or hold to clear. |
-| **Trigger conditions** | Set a standard button's popup and long-press actions, send timing and repeat behavior. |
-| **Long-press action** | Choose an action to trigger after holding for 500–3000 ms, adjustable with the slider or numeric field. Hold the action selector to clear it. |
-| **Send on release** | Send the primary action on release; an upward swipe replaces it with the popup action. Repeat is unavailable. |
-| **Send immediately on press** | Send the primary action as soon as the button is touched; a subsequent swipe cannot undo it. |
-| **Repeat while held** | In immediate mode, repeat ordinary key actions, useful for arrows, Backspace, or page keys. |
-| **Mode** | Cycle TrackPoint between mouse and scroll; switch the scroll bar between vertical and horizontal. |
-| **Sensitivity (×10)** | Adjust response speed for the relevant pointer or scrolling control. |
-| **Deadzone (dp)** | Adjust the area around the center that does not trigger movement. |
-| **Color Theme** | Choose a preset color scheme. |
-| **Haptic Feedback** | Toggle feedback for the control; actual vibration also depends on device settings. |
-| **Nudge Position** | Move the control in small steps with the direction buttons. |
-| **DUP** | Copy the selected control, then drag the copy into place. |
-| **DEL → CONFIRM?** | Tap Delete and tap again to confirm removal. |
+| **显示标签** | 修改控件上显示的文字；修改标签不会改变动作。 |
+| **外观** | 打开尺寸、圆角、不透明度和颜色主题设置。 |
+| **宽度、 高度（dp）** | 用滑块或数值调整控件尺寸。dp 是与设备密度相关的尺寸单位。 |
+| **圆角（dp）** | 调整控件边角的圆润程度。 |
+| **不透明度（%）** | 调整控件的可见程度；数值越低越透明。 |
+| **主动作** | 点击当前动作打开选择器；长按动作按钮清除绑定。 |
+| **弹出动作（上滑）** | 标准按键向上滑时执行的动作；点击选择，长按清除。 |
+| **滑动动作：左 / 右 / 上 / 下** | Super 手势区域四个方向的动作；点击选择，长按清除。 |
+| **条件触发** | 为标准按键设置弹出动作、长按动作、发送时机和连续发送。 |
+| **长按触发** | 选择长按时执行的动作；长按动作选择按钮可清除。用滑块或输入框设置 500–3000 毫秒触发时间。 |
+| **松手发送** | 松手时发送主动作；上滑触发弹出动作时不会发送主动作。此模式不能连续发送。 |
+| **按下立即发送** | 触碰时立即发送主动作；如果随后上滑，主动作已经发送。 |
+| **按住时连续发送** | 在按下立即发送模式下，对普通按键启用重复，适合方向、退格或翻页。 |
+| **模式** | TrackPoint 切换鼠标和滚动；滚动条切换竖向和横向。 |
+| **灵敏度（×10）** | 调整相应指针或滚动控件的响应速度。 |
+| **死区（dp）** | 调整中心附近不触发移动的区域。 |
+| **颜色主题** | 选择预设配色。 |
+| **触觉反馈** | 开关该控件的触觉反馈，实际振动还受设备设置影响。 |
+| **微调位置** | 用方向按钮小幅移动控件。 |
+| **复制** | 复制当前控件，随后可拖动副本。 |
+| **删除 → 确认？** | 点击删除后再次点击确认，移除当前控件。 |
 
-### Group container
+### 聚合容器
 
-Select the container and use **Add key to group** under its children section to choose an action, or **Move existing key in** to choose a standalone standard key on the canvas. You can also drag a standalone standard key onto the container. Children are automatically arranged and the container grows to fit. Tap a child's action to reassign it; **Take out** returns it to the canvas, and **DEL** removes it from the group. Drag the container to move the whole group.
+点击容器，在 **子按键** 区域选择 **向聚合中添加按键** 并分配动作，或选 **移入已有按键** 从画布上的独立标准按键中选择；也可拖动独立标准按键到容器上。子按键会自动排列，容器按内容扩大。点击子按键的动作可重新分配；**移出** 将它放回画布，**删除** 将它从容器移除。拖动容器可移动整组。
 
-## Choosing keys and actions
+## 选择按键和动作
 
-Tap an action in the properties panel to open the picker. Switch categories at the top; the category bar scrolls horizontally. Use search to find keys, and **Back** to close the picker.
+点击属性面板中的动作进入选择器。顶部可切换分类，分类栏可以横向滚动；搜索框可帮助查找按键，**返回** 关闭选择器。
 
-| Category | Contents |
+| 分类 | 内容 |
 | --- | --- |
-| **Keys** | Ordinary keys including letters, digits, and function keys. |
-| **MODS & SYS** | Modifiers such as Ctrl and Alt, plus Android soft keyboard, Anland virtual keyboard, Settings, mouse buttons, scroll, and other system actions. |
-| **Combo** | Build an action with up to three keys. |
+| **按键** | 字母、数字、功能键等普通键。 |
+| **修饰键与系统** | Ctrl、Alt 等修饰键，以及系统软键盘、Anland 虚拟键盘、隐藏 / 恢复 HUD、设置、鼠标按键、滚轮等动作。隐藏 HUD 后，绑定该动作的控件保留可见，再次触发可恢复。 |
+| **组合键** | 选择最多三个键组成一个动作。 |
 
-In the combo builder, tap a slot and choose its key. **Clear All** empties the slots; **Apply Combo** applies the selection. For example, select the three slots and fill them with Ctrl, Shift, and C, then apply. A modifier action toggles its active state when tapped and automatically releases after the next key is sent.
+组合键编辑器中先点击要编辑的槽位，再选择按键；**清除全部** 清空槽位，**应用组合键** 保存选择。例如设置 Ctrl+Shift+C：依次选三个槽位并填入 Ctrl、Shift、C，再点击应用。选用修饰键动作时，轻点可切换其激活状态；发送下一次按键后会自动释放。
 
-## Buttons in the built-in presets
+## 内置预设中的按键
 
-### User Portrait Hotkeys and Desktop / Productivity
+### 用户竖屏快捷键布局和桌面 / 办公预设
 
-| Control | Default tap / swipe action |
+| 控件 | 点击 / 滑动的默认动作 |
 | --- | --- |
-| Super Gesture Nub | Left: Super+Left; right: Super+Right; up: Super+F; down: toggle the Android soft keyboard. Window effects depend on desktop shortcuts. |
-| **Q** | Tap: Super+Q; swipe up: open Anland Settings. |
-| **OV** | Tap: Super+O; swipe up: Enter. |
-| **CP** | Tap: Ctrl+Shift+V; swipe up: Ctrl+Shift+C, commonly paste and copy in terminals. |
-| **MOUSE** | Mouse TrackPoint in the productivity preset. |
-| **ESC, TAB, ENTER, BKSP** | Productivity preset keys sending Escape, Tab, Enter, and Backspace. |
-| **CTRL, ALT** | Modifier keys in the productivity preset. |
-| **KB** | In the productivity preset, toggle the Anland virtual keyboard; hold to hide or restore the HUD. |
-| **⚙** | Open Settings in the productivity preset. |
+| Super 手势区域 | 左：Super+左；右：Super+右；上：Super+F；下：切换 Android 系统软键盘。具体窗口效果由桌面快捷键决定。 |
+| **Q** | 点击 Super+Q；上滑打开 Anland 设置。 |
+| **OV** | 点击 Super+O；上滑 Enter。 |
+| **CP** | 点击 Ctrl+Shift+V；上滑 Ctrl+Shift+C，常用于终端粘贴和复制。 |
+| **MOUSE** | 办公预设中的鼠标指点杆。 |
+| **ESC、TAB、ENTER、BKSP** | 办公预设中分别发送 Escape、Tab、Enter、Backspace。 |
+| **CTRL、ALT** | 办公预设中的修饰键。 |
+| **KB** | 办公预设中切换 Anland 虚拟键盘；默认长按动作是隐藏或恢复 HUD，可在条件触发中修改。 |
+| **⚙** | 办公预设中打开设置。 |
 
-The portrait hotkeys preset contains only the Super gesture, Q, OV, and CP. Add KB or other controls yourself, or use the productivity preset.
+竖屏快捷键预设只有 Super 手势区域、Q、OV 和 CP；需要 KB 或其他控件时，可手动添加或使用办公预设。
 
 
-## Keyboard layer and settings
+## 键盘层和键盘设置
 
-Controls snap into alignment while dragging. Choose custom layout 1, 2, or 3 from **Layout**. Layout 1 retains the existing layout, layout 2 has a built-in default, and layout 3 starts empty. Saved layouts are preserved. Each custom layout stores regular HUD and keyboard layers separately in portrait and landscape. Add layout-switch buttons from **Mods & System** in the standard key picker; add a return button to an empty destination before switching to it. Tap **Edit keyboard** to see the keyboard and its HUD layer. This layer starts empty and accepts the controls described above. It is used while the virtual keyboard is visible; closing the keyboard returns to the regular HUD layer.
+通过 **布局** 选择自定义布局 1、2 或 3；布局 1 保留原有布局，布局 2 使用内置默认布局，布局 3 初始为空。已保存的布局不会被默认值覆盖。每个自定义布局的普通 HUD 层与键盘层分别保存，且竖屏、横屏各有布局。标准按键的 **修饰键与系统** 中可添加切换布局按钮；切换到空布局前，可先在目标布局中添加返回按钮。点击 **编辑键盘** 查看键盘及其 HUD 层；该层默认空白，也可添加上述控件。虚拟键盘显示时使用键盘层，关闭后返回普通 HUD 层。
 
-Tap **Keyboard settings** on the keyboard layer:
+在键盘层点击 **键盘设置**：
 
-- **Use split arc keyboard in landscape:** split the keyboard into two halves in landscape. In the editor, drag a blank area near each half to position it; positions are saved. Tap **HIDE** during use to dismiss it.
-- **Keyboard handedness:** choose the left- or right-handed layout.
-- **Key appearance:** choose filled, outlined, or transparent.
-- **Vibrate on virtual key press:** toggle keyboard vibration.
-- **Customize thumb wings…:** choose the left and right wing-key functions, restore defaults if desired, and tap **Done** to close.
+- **横屏使用分体弧形键盘**：横屏时将键盘分为左右两半；在编辑器中拖动各半附近的空白区域可分别定位，位置会保存。使用时点击 **HIDE** 收起键盘。
+- **键盘左右手布局**：选择左手或右手布局。
+- **按键外观**：选择填充、描边或透明。
+- **按下虚拟按键时振动**：开关键盘振动。
+- **自定义两侧翼键…**：选择左右翼键及其功能；可恢复默认，点击 **完成** 关闭。
 
-Move the portrait floating keyboard using its drag handle. Keyboard settings and positions are saved separately; discarding HUD layout edits does not undo them.
+竖屏浮动键盘可通过拖动手柄移动。键盘设置和位置单独保存，放弃 HUD 布局更改不会撤销这些设置。
 
-## Backup, restore, and troubleshooting
+## 备份、恢复和排查
 
-Under **Settings → Keyboard & Keys**, choose **Export HUD layout…**, select one layout, and save the JSON file. It includes portrait, landscape, and keyboard layers for that layout. For **Import HUD layout…**, select a file and one destination layout to replace; other layouts are preserved. For an older full-profile backup, first choose the source layout in the backup. Import enables HUD controls.
+在 **设置 → 键盘与按键** 中选择 **导出 HUD 布局…**，选一个布局并保存 JSON；文件包含该布局的横竖屏及键盘层。选择 **导入 HUD 布局…** 并选择文件，再选一个目标布局进行覆盖，其他布局不受影响。旧版完整备份会先要求选择备份中的来源布局。导入会开启 HUD。
 
-- **Controls are missing:** check the display switch, current orientation, and layer. If hidden by holding KB, hold the still-visible KB again to restore them. In the editor, check whether the current layout is empty or its opacity is too low.
-- **Controls do not respond:** check their bindings and whether the target supports the input. Under **Settings → Immersive Mode → Immersive input**, check that **Touch HUD controls in immersive mode** is enabled. When disabled while the touchscreen is grabbed, the HUD is display-only and touches go to the desktop.
-- **Layout changes on rotation:** portrait and landscape are stored separately; rotate and edit that orientation, or use the layout menu to copy.
-- **Controls disappear when the keyboard opens:** the keyboard uses a separate layer. Tap **Edit keyboard** in the editor and add controls to that layer.
+- **看不到控件**：检查显示开关、当前方向及图层；若 HUD 已隐藏，使用仍可见的隐藏 / 恢复 HUD 动作恢复。也可进入编辑器检查当前布局是否为空或透明度过低。
+- **控件没有反应**：检查动作是否绑定、目标应用是否支持该输入；在 **设置 → 沉浸模式 → 沉浸输入** 中确认 **沉浸模式下可触摸 HUD 控件** 已开启。关闭该选项时，独占触摸屏期间 HUD 仅显示，触摸交给桌面。
+- **切换方向后布局不同**：横屏和竖屏分别保存；旋转后编辑对应方向，或使用布局菜单复制。
+- **键盘出现后控件消失**：键盘显示时使用独立的键盘层；在编辑器点击 **编辑键盘** 为该层添加控件。
 
-Each sliding-cross direction can use its own key, combination, or other action. Keys and combinations stay held until you slide away or release. Loading an older profile removes virtual gamepad buttons and retains the cross with keyboard arrows by default; touchpads and other keyboard/mouse controls are preserved.
+滑动十字键的四个方向可分别绑定按键、组合键或其他动作；按键和组合键随按住持续生效，滑离方向或松手时释放。旧布局中的虚拟手柄按钮会在加载时移除，十字键保留并默认改用键盘方向键，触控板和其他键鼠控件保留。
