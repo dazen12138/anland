@@ -26,6 +26,11 @@ import android.view.ViewConfiguration;
  * Anything else — a pinch, three or more fingers — is forwarded as touch, mapped
  * into a square around the cursor (see {@link #setGestureScale}).
  *
+ * A single-button clickpad can additionally split its surface into a left and a
+ * right click zone; that split is opt-in because many users want a press
+ * anywhere on the pad to be a left click (see {@link #setClickpadRightZone}).
+ * Right-click stays available as the two-finger tap either way.
+ *
  * The cursor itself belongs to the host: this class only reports deltas through
  * {@link Output#onMotion} and reads the current position back through
  * {@link Output#cursorX}/{@link Output#cursorY}, so both instances share one
@@ -72,6 +77,9 @@ public final class Touchpad {
     // Physical pads can disable synthesized taps while retaining real buttons
     // (those are delivered separately by ImmersiveMode / pointer capture).
     private boolean tapToClick = true;
+    // Clickpad left/right half split. Off by default: a press anywhere on the
+    // pad is a left click, and the two-finger tap remains the right click.
+    private boolean clickpadRightZone = false;
     private int scrollGuardMs;
     // Absolute event-time deadline rather than a per-stream latch. Long-press
     // drag remains available once the guard has elapsed; a latched flag caused
@@ -85,6 +93,16 @@ public final class Touchpad {
         tapToClick = enabled;
         scrollGuardMs = Math.max(0, Math.min(1000, guardMs));
         this.debug = debug;
+    }
+
+    /**
+     * Split a single-button clickpad into a left and a right click zone.
+     * Enabled: a press on the right half sends BTN_RIGHT. Disabled (the
+     * default): every press sends BTN_LEFT, so the pad behaves like a plain
+     * left button and a right click is made with a two-finger tap.
+     */
+    void setClickpadRightZone(boolean enabled) {
+        clickpadRightZone = enabled;
     }
 
     /** True when taps may be synthesized at this event time. */
@@ -319,14 +337,15 @@ public final class Touchpad {
      * each current contact is compared against the last position recognize()
      * recorded (lastX1 for the primary finger, lastX2 for the second) and the one
      * that travelled least wins. Left half of the pad => BTN_LEFT (0x110), right
-     * half => BTN_RIGHT (0x111).
+     * half => BTN_RIGHT (0x111) when {@link #setClickpadRightZone} is enabled;
+     * otherwise every press is BTN_LEFT.
      *
      * Call on the ACTION_BUTTON_PRESS event. The press triggers cancel(), which
      * does not clear the baseline, so the prior positions are still live. Returns
      * BTN_LEFT when no baseline is available (a press with no contact on the pad).
      */
     int clickpadButton(MotionEvent event) {
-        if (!clickpadBaselineValid || event.getPointerCount() <= 0)
+        if (!clickpadRightZone || !clickpadBaselineValid || event.getPointerCount() <= 0)
             return 0x110; // BTN_LEFT
 
         // A press that arrives after a single contact has already been held

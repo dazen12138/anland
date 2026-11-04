@@ -192,6 +192,9 @@ public class MainActivity extends Activity
     // Physical touchpad tap filtering. The scroll guard is measured from the
     // last scrolling event until the next deliberate tap.
     public static final String KEY_PAD_TAP = "pad_tap";
+    // Single-button clickpad: when on, a press on the right half is a right
+    // click. Off by default, so every press is a left click.
+    public static final String KEY_PAD_RIGHT_ZONE = "pad_right_zone";
     public static final String KEY_PAD_SCROLL_GUARD_MS = "pad_scroll_guard_ms";
     public static final String KEY_PAD_DEBUG = "pad_debug";
     // Capture an external mouse/touchpad as a relative pointer so it cannot reach
@@ -1167,6 +1170,8 @@ public class MainActivity extends Activity
             pad.setTapFilter(prefs.getBoolean(KEY_PAD_TAP, true),
                     prefs.getInt(KEY_PAD_SCROLL_GUARD_MS, 0),
                     prefs.getBoolean(KEY_PAD_DEBUG, false));
+        pad.setClickpadRightZone(
+                prefs.getBoolean(KEY_PAD_RIGHT_ZONE, false));
         pad.setAccelStrength(Math.max(0.5f,
                 Math.min(10.0f, prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f))));
         pad.setScrollSpeed(prefs.getFloat(KEY_SCROLL_SPEED,
