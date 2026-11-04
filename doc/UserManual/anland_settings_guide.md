@@ -175,6 +175,16 @@ This is useful for games and continuous pointer movement. Press Android Back to 
 
 Linux apps can still request pointer lock temporarily when this option is off. Normal behavior resumes when the app releases the lock.
 
+<a id="right-click-zone"></a>
+### Right-side press = right click
+
+Most single-button laptop touchpads report every physical press as a left click, so Anland can split the pad surface: a press on the right half becomes a right click.
+
+- **Off (default):** pressing anywhere on the pad sends a left click. This avoids opening a context menu by accident when clicking near the right edge. Right-click remains available as a two-finger tap.
+- **On:** pressing the right half of a single-button touchpad sends a right click.
+
+This affects captured physical touchpads and touchpads grabbed in immersive mode. The on-screen touchpad and devices with dedicated buttons are unaffected.
+
 <a id="pointer-sensitivity"></a>
 ### Touchpad Pointer Sensitivity (Acceleration)
 
