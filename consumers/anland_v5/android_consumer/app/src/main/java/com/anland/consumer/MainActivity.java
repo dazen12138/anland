@@ -1170,18 +1170,8 @@ public class MainActivity extends Activity
         return clampAccel(prefs.getFloat(KEY_TOUCHPAD_ACCEL, 1.0f));
     }
 
-    /**
-     * Mouse acceleration, clamped to the slider range. Before the split the
-     * mouse shared the touchpad value, so on the first read after upgrading the
-     * old value is stored once under the new key; afterwards the two settings
-     * are independent.
-     */
+    /** Mouse acceleration, clamped to the range the settings slider exposes. */
     public static float readMouseAccel(SharedPreferences prefs) {
-        if (!prefs.contains(KEY_MOUSE_ACCEL)) {
-            float inherited = readTouchpadAccel(prefs);
-            prefs.edit().putFloat(KEY_MOUSE_ACCEL, inherited).apply();
-            return inherited;
-        }
         return clampAccel(prefs.getFloat(KEY_MOUSE_ACCEL, 1.0f));
     }
 
