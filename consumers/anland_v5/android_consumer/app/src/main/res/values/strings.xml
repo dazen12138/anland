@@ -1,414 +1,398 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_short_label">Settings</string>
-
+    <string name="settings_short_label">设置</string>
     <!-- Titles / section headers -->
-    <string name="settings_title">Settings</string>
-    <string name="section_virtual_keyboard">Soft Keyboard Toggle Key</string>
-    <string name="section_connection">Connection</string>
-    <string name="section_resolution">Display Resolution</string>
-    <string name="section_notification">Settings Notification</string>
-
+    <string name="settings_title">设置</string>
+    <string name="section_virtual_keyboard">软键盘切换键</string>
+    <string name="section_connection">连接</string>
+    <string name="section_resolution">显示分辨率</string>
+    <string name="section_notification">设置通知</string>
     <!-- Settings home: category rows and back navigation -->
-    <string name="nav_back">‹ Back</string>
-    <string name="cat_keyboard_title">Keyboard &amp; Keys</string>
-    <string name="cat_keyboard_subtitle">Key binding, accessibility, virtual keyboard &amp; HUD controls</string>
-    <string name="cat_touchpad_title">Touchpad &amp; Mouse</string>
-    <string name="cat_touchpad_subtitle">Touchpad mode, pointer capture &amp; sensitivity</string>
-    <string name="cat_connection_subtitle">Socket, root, mic, camera &amp; audio latency</string>
-    <string name="cat_resolution_subtitle">Output resolution &amp; presets</string>
-    <string name="cat_general_title">General</string>
-    <string name="cat_general_subtitle">Screen orientation &amp; settings notification</string>
-
+    <string name="nav_back">‹ 返回</string>
+    <string name="cat_keyboard_title">键盘与按键</string>
+    <string name="cat_keyboard_subtitle">按键绑定、无障碍、虚拟键盘与 HUD 控件</string>
+    <string name="cat_touchpad_title">触摸板与鼠标</string>
+    <string name="cat_touchpad_subtitle">触摸板模式、指针捕获与灵敏度</string>
+    <string name="cat_connection_subtitle">套接字、root、麦克风、摄像头与音频延迟</string>
+    <string name="cat_resolution_subtitle">输出分辨率与预设</string>
+    <string name="cat_general_title">通用</string>
+    <string name="cat_general_subtitle">屏幕方向与设置通知</string>
     <!-- Screen orientation -->
-    <string name="section_orientation">Screen Orientation</string>
-    <string name="orientation_label">Force screen orientation</string>
+    <string name="section_orientation">屏幕方向</string>
+    <string name="orientation_label">强制屏幕方向</string>
     <string-array name="orientation_options">
-        <item>Default (system)</item>
-        <item>Force landscape</item>
-        <item>Force portrait</item>
+        <item>默认（跟随系统）</item>
+        <item>强制横屏</item>
+        <item>强制竖屏</item>
     </string-array>
-
     <!-- Bind key -->
-    <string name="bind_key_button">Bind Soft Keyboard Toggle Key</string>
-    <string name="landscape_split_keyboard">Use split arc keyboard in landscape</string>
-    <string name="landscape_split_keyboard_hint">Separates letter keys into left and right thumb clusters when the screen is landscape.</string>
-    <string name="customize_keyboard_wings">Customize thumb wings…</string>
-    <string name="keyboard_layer_to_keyboard">Edit keyboard</string>
-    <string name="keyboard_layer_to_hud">Back to HUD</string>
-    <string name="keyboard_layer_settings">Keyboard settings</string>
-    <string name="keyboard_wings_title">Customize thumb wings</string>
-    <string name="keyboard_wings_left">Left wing</string>
-    <string name="keyboard_wings_right">Right wing</string>
-    <string name="keyboard_wings_picker_title">Choose key action</string>
-    <string name="keyboard_wings_use_default">Use default key</string>
-    <string name="keyboard_wings_reset">Reset defaults</string>
-    <string name="keyboard_wings_done">Done</string>
-    <string name="keyboard_handedness">Keyboard handedness</string>
+    <string name="bind_key_button">绑定软键盘切换键</string>
+    <string name="landscape_split_keyboard">横屏使用分体弧形键盘</string>
+    <string name="landscape_split_keyboard_hint">横屏时将字母键分到左右拇指区域。</string>
+    <string name="customize_keyboard_wings">自定义两侧翼键…</string>
+    <string name="keyboard_layer_to_keyboard">编辑键盘</string>
+    <string name="keyboard_layer_to_hud">返回 HUD</string>
+    <string name="keyboard_layer_settings">键盘设置</string>
+    <string name="keyboard_wings_title">自定义两侧翼键</string>
+    <string name="keyboard_wings_left">左侧翼键</string>
+    <string name="keyboard_wings_right">右侧翼键</string>
+    <string name="keyboard_wings_picker_title">选择按键功能</string>
+    <string name="keyboard_wings_use_default">使用默认按键</string>
+    <string name="keyboard_wings_reset">恢复默认</string>
+    <string name="keyboard_wings_done">完成</string>
+    <string name="keyboard_handedness">键盘左右手布局</string>
     <string-array name="keyboard_handedness_options">
-        <item>Left-handed</item>
-        <item>Right-handed</item>
+        <item>左手布局</item>
+        <item>右手布局</item>
     </string-array>
-    <string name="keyboard_theme">Key appearance</string>
+    <string name="keyboard_theme">按键外观</string>
     <string-array name="keyboard_theme_options">
-        <item>Filled</item>
-        <item>Outlined</item>
-        <item>Transparent</item>
+        <item>填充</item>
+        <item>描边</item>
+        <item>透明</item>
     </string-array>
-    <string name="keyboard_haptic_feedback">Vibrate on virtual key press</string>
-    <string name="raise_desktop_for_soft_keyboard">Raise desktop when soft keyboard opens</string>
-    <string name="raise_desktop_for_soft_keyboard_hint">When on, the desktop shrinks and moves up so you can see what you type.</string>
-    <string name="hud_controls_switch">Show floating HUD controls</string>
-    <string name="hud_controls_hint">Show editable touchpad, D-pad, stick and shortcut controls.</string>
-    <string name="hud_edit_layout">Edit floating control layout</string>
-    <string name="hud_export_layout">Export HUD layout…</string>
-    <string name="hud_import_layout">Import HUD layout…</string>
-    <string name="hud_export_done">HUD layout exported</string>
-    <string name="hud_export_failed">Could not export HUD layout</string>
-    <string name="hud_import_done">HUD layout imported</string>
-    <string name="hud_import_failed">Could not import that layout file</string>
-    <string name="hud_overlay_saved">Layout Saved</string>
-    <string name="hud_overlay_hidden_on">HUD hidden — use the visible control to restore it</string>
-    <string name="hud_overlay_hidden_off">HUD restored</string>
-    <string name="hud_overlay_save_error">Error saving layout</string>
-    <string name="hud_overlay_changes_discarded">Changes Discarded</string>
-    <string name="hud_overlay_exit_title">EXIT HUD EDITOR</string>
-    <string name="hud_overlay_exit_message">Save layout changes before exiting?</string>
-    <string name="hud_overlay_save_and_exit">SAVE &amp; EXIT</string>
-    <string name="hud_overlay_discard">DISCARD</string>
-    <string name="hud_overlay_cancel">CANCEL</string>
-    <string name="hud_overlay_orientation_title">ORIENTATION NOTICE</string>
-    <string name="hud_overlay_orientation_message">Portrait and Landscape layouts are stored independently.\n\nRotate your device to customize buttons and dock positions for each orientation separately.</string>
-    <string name="hud_overlay_got_it">GOT IT</string>
-    <string name="hud_overlay_copy_portrait_here">Copy Portrait Layout Here</string>
-    <string name="hud_overlay_copy_landscape_here">Copy Landscape Layout Here</string>
-    <string name="hud_overlay_productivity_preset">Desktop / Productivity Preset (10% Inset)</string>
-    <string name="hud_overlay_user_portrait_hotkeys_layout">User Portrait Hotkeys Layout</string>
-    <string name="hud_overlay_clear_active_layout">Clear Active Layout</string>
-    <string name="hud_overlay_layout_options_title">Layout Options &amp; Presets</string>
-    <string name="hud_overlay_copied">Layout Copied</string>
-    <string name="hud_overlay_productivity_preset_loaded">Desktop / Productivity Preset (10% Inset) Loaded</string>
-    <string name="hud_overlay_user_portrait_layout_loaded">User Portrait Layout Loaded</string>
-    <string name="hud_overlay_layout_cleared">Layout Cleared</string>
-    <string name="hud_overlay_add_standard_key_button">Standard Key Button</string>
-    <string name="hud_overlay_add_super_gesture_nub">Super Gesture Nub</string>
-    <string name="hud_overlay_add_trackpoint">TrackPoint (Mouse / Scroll)</string>
-    <string name="hud_overlay_add_steam_deck_trackpad">Steam Deck Trackpad (Touchpad / Mouse)</string>
-    <string name="hud_overlay_add_scroll_bar">Scroll Bar (Vertical / Horizontal)</string>
-    <string name="hud_overlay_add_dpad">D-Pad (Sliding Cross)</string>
-    <string name="hud_overlay_add_group">Group container</string>
-    <string name="hud_widget_group">GROUP</string>
-    <string name="hud_group_children">Child keys</string>
-    <string name="hud_group_add_key">Add key to group</string>
-    <string name="hud_group_empty">No keys in this group yet</string>
-    <string name="hud_group_add_existing">Move existing key in</string>
-    <string name="hud_group_detach">Take out</string>
-    <string name="hud_group_drop_hint">Drop keys here</string>
-    <string name="hud_group_moved_in">Key moved into group</string>
-    <string name="hud_group_detached">Key taken out of group</string>
-    <string name="hud_group_no_candidates">No standalone keys on screen</string>
-    <string name="hud_group_move_in_title">Move key into group</string>
-    <string name="hud_overlay_add_widget_title">Add Widget</string>
-    <string name="hud_overlay_daemon_connected">DAEMON CONNECTED</string>
-    <string name="hud_overlay_daemon_offline">DAEMON OFFLINE</string>
-    <string name="hud_overlay_toolbar_save">SAVE</string>
-    <string name="hud_overlay_toolbar_add">ADD</string>
-    <string name="hud_overlay_toolbar_layout">LAYOUT</string>
-    <string name="hud_overlay_toolbar_exit">EXIT</string>
-    <string name="hud_overlay_label_key">KEY</string>
-    <string name="hud_overlay_label_super">SUPER</string>
-    <string name="hud_overlay_label_mouse">MOUSE</string>
-    <string name="hud_overlay_label_touchpad">TOUCHPAD</string>
-    <string name="hud_overlay_label_scroll">SCROLL</string>
-    <string name="hud_overlay_label_dpad">D-PAD</string>
-    <string name="listening_countdown">Listening… (%1$ds)</string>
-    <string name="status_current_none">Current: None</string>
-    <string name="status_current">Current: %1$s</string>
-    <string name="status_current_no_scancode">Current: %1$s — this key reports no scan code, so immersive mode cannot use it. Bind a hardware key such as Volume Up.</string>
-    <string name="keycode_unknown">Keycode %1$d</string>
-    <string name="scancode_unknown">Scan code %1$d</string>
-
+    <string name="keyboard_haptic_feedback">按下虚拟按键时振动</string>
+    <string name="raise_desktop_for_soft_keyboard">软键盘弹出时抬起桌面</string>
+    <string name="raise_desktop_for_soft_keyboard_hint">开启后，桌面会缩小并向上移动，能看清正在输入的内容。</string>
+    <string name="hud_controls_switch">显示浮动 HUD 控件</string>
+    <string name="hud_controls_hint">显示可编辑的触摸板、方向键、摇杆和快捷按键。</string>
+    <string name="hud_edit_layout">编辑浮动控件布局</string>
+    <string name="hud_export_layout">导出 HUD 布局…</string>
+    <string name="hud_import_layout">导入 HUD 布局…</string>
+    <string name="hud_export_done">已导出 HUD 布局</string>
+    <string name="hud_export_failed">无法导出 HUD 布局</string>
+    <string name="hud_import_done">已导入 HUD 布局</string>
+    <string name="hud_import_failed">无法导入该布局文件</string>
+    <string name="hud_overlay_saved">布局已保存</string>
+    <string name="hud_overlay_hidden_on">HUD 已隐藏，再次使用保留的控件可恢复</string>
+    <string name="hud_overlay_hidden_off">HUD 已恢复</string>
+    <string name="hud_overlay_save_error">保存布局失败</string>
+    <string name="hud_overlay_changes_discarded">已放弃更改</string>
+    <string name="hud_overlay_exit_title">退出 HUD 编辑器</string>
+    <string name="hud_overlay_exit_message">退出前保存布局更改吗？</string>
+    <string name="hud_overlay_save_and_exit">保存并退出</string>
+    <string name="hud_overlay_discard">放弃</string>
+    <string name="hud_overlay_cancel">取消</string>
+    <string name="hud_overlay_orientation_title">方向提示</string>
+    <string name="hud_overlay_orientation_message">竖屏和横屏布局分别保存。\n\n旋转设备，即可分别自定义每种屏幕方向下的按键和停靠位置。</string>
+    <string name="hud_overlay_got_it">知道了</string>
+    <string name="hud_overlay_copy_portrait_here">将竖屏布局复制到此处</string>
+    <string name="hud_overlay_copy_landscape_here">将横屏布局复制到此处</string>
+    <string name="hud_overlay_productivity_preset">桌面 / 办公预设（10% 内缩）</string>
+    <string name="hud_overlay_user_portrait_hotkeys_layout">用户竖屏快捷键布局</string>
+    <string name="hud_overlay_clear_active_layout">清空当前布局</string>
+    <string name="hud_overlay_layout_options_title">布局选项与预设</string>
+    <string name="hud_overlay_copied">已复制布局</string>
+    <string name="hud_overlay_productivity_preset_loaded">已载入桌面 / 办公预设（10% 内缩）</string>
+    <string name="hud_overlay_user_portrait_layout_loaded">已载入用户竖屏布局</string>
+    <string name="hud_overlay_layout_cleared">已清空布局</string>
+    <string name="hud_overlay_add_standard_key_button">标准按键</string>
+    <string name="hud_overlay_add_super_gesture_nub">Super 手势区域</string>
+    <string name="hud_overlay_add_trackpoint">TrackPoint（鼠标 / 滚动）</string>
+    <string name="hud_overlay_add_steam_deck_trackpad">Steam Deck 触摸板（触摸板 / 鼠标）</string>
+    <string name="hud_overlay_add_scroll_bar">滚动条（纵向 / 横向）</string>
+    <string name="hud_overlay_add_dpad">方向键（滑动十字）</string>
+    <string name="hud_overlay_add_group">聚合容器</string>
+    <string name="hud_widget_group">聚合</string>
+    <string name="hud_group_children">子按键</string>
+    <string name="hud_group_add_key">向聚合中添加按键</string>
+    <string name="hud_group_empty">这个聚合里还没有按键</string>
+    <string name="hud_group_add_existing">移入已有按键</string>
+    <string name="hud_group_detach">移出</string>
+    <string name="hud_group_drop_hint">把按键拖到这里</string>
+    <string name="hud_group_moved_in">已移入聚合</string>
+    <string name="hud_group_detached">已移出聚合</string>
+    <string name="hud_group_no_candidates">屏幕上没有可移入的独立按键</string>
+    <string name="hud_group_move_in_title">移入聚合</string>
+    <string name="hud_overlay_add_widget_title">添加控件</string>
+    <string name="hud_overlay_daemon_connected">守护进程已连接</string>
+    <string name="hud_overlay_daemon_offline">守护进程未连接</string>
+    <string name="hud_overlay_toolbar_save">保存</string>
+    <string name="hud_overlay_toolbar_add">添加</string>
+    <string name="hud_overlay_toolbar_layout">布局</string>
+    <string name="hud_overlay_toolbar_exit">退出</string>
+    <string name="hud_overlay_label_key">按键</string>
+    <string name="hud_overlay_label_super">超级键</string>
+    <string name="hud_overlay_label_mouse">鼠标</string>
+    <string name="hud_overlay_label_touchpad">触摸板</string>
+    <string name="hud_overlay_label_scroll">滚动</string>
+    <string name="hud_overlay_label_dpad">方向键</string>
+    <string name="listening_countdown">正在监听…（%1$d 秒）</string>
+    <string name="status_current_none">当前：无</string>
+    <string name="status_current">当前：%1$s</string>
+    <string name="status_current_no_scancode">当前：%1$s —— 该按键不上报扫描码，沉浸模式无法使用它。请改绑音量+等硬件按键。</string>
+    <string name="keycode_unknown">键码 %1$d</string>
+    <string name="scancode_unknown">扫描码 %1$d</string>
     <!-- Immersive mode -->
-    <string name="section_immersive">Immersive Mode</string>
-    <string name="immersive_switch">Enable Immersive Mode</string>
-    <string name="immersive_hint">Sends touch, keyboard, mouse and gamepad input directly to the Linux desktop, keeping Android gestures out of the way. Requires root. Set a toggle key below: press it once to enter and again to exit. The mode also ends when you switch apps.</string>
-    <string name="immersive_hud_touch_switch">Touch HUD controls in immersive mode</string>
-    <string name="immersive_hud_touch_hint">Keeps the on-screen HUD keys, d-pad and touchpad working while the panel is grabbed. Turn it off to send every touch straight to the desktop, leaving the HUD display-only.</string>
-    <string name="immersive_oplus_refresh_rate_switch">Keep OnePlus refresh rate fixed</string>
-    <string name="immersive_oplus_refresh_rate_hint">Prevents refresh-rate drops on some OnePlus devices when input events are not received.</string>
-    <string name="bind_immersive_key_button">Bind Immersive Mode Key</string>
-    <string name="immersive_exited">Immersive mode off</string>
-    <string name="immersive_no_scancode">Bind a key for immersive mode first</string>
-    <string name="immersive_failed">Could not start immersive mode: root was denied or is unavailable</string>
-    <string name="immersive_no_devices">Could not start immersive mode: no input device could be taken over</string>
-    <string name="immersive_controller_failed">Could not start immersive mode: Android controller suppression failed; input takeover was cancelled</string>
-    <string name="immersive_controller_interrupted">Immersive mode ended: Android controller suppression was lost; input takeover was released</string>
-    <string name="immersive_interrupted">Immersive mode ended; input returned to Android</string>
-    <string name="immersive_entering_mode">Immersive mode on: %1$s</string>
+    <string name="section_immersive">沉浸模式</string>
+    <string name="immersive_switch">启用沉浸模式</string>
+    <string name="immersive_hint">将触摸、键盘、鼠标和手柄输入直接交给 Linux 桌面，避免 Android 系统手势干扰。需要 root。在下方设置切换按键：按一次进入，再按一次退出；切换到其他应用时会自动退出。</string>
+    <string name="immersive_hud_touch_switch">沉浸模式下可触摸 HUD 控件</string>
+    <string name="immersive_hud_touch_hint">开启后，触摸屏被独占期间 HUD 按键、方向键、触摸板仍然可用；关闭则所有触摸直接交给桌面，HUD 只显示不响应。</string>
+    <string name="immersive_oplus_refresh_rate_switch">固定 OnePlus 高刷新率</string>
+    <string name="immersive_oplus_refresh_rate_hint">解决某些 OnePlus 设备接收不到输入事件导致的刷新率降低</string>
+    <string name="bind_immersive_key_button">绑定沉浸模式按键</string>
+    <string name="immersive_exited">已退出沉浸模式</string>
+    <string name="immersive_no_scancode">请先为沉浸模式绑定按键</string>
+    <string name="immersive_failed">无法进入沉浸模式：root 被拒绝或不可用</string>
+    <string name="immersive_no_devices">无法进入沉浸模式：没有可接管的输入设备</string>
+    <string name="immersive_controller_failed">无法进入沉浸模式：未能屏蔽 Android 手柄输入，已回滚输入接管</string>
+    <string name="immersive_controller_interrupted">沉浸模式已结束：Android 手柄接管失效，已释放输入接管</string>
+    <string name="immersive_interrupted">沉浸模式已结束，输入已交还安卓</string>
+    <string name="immersive_entering_mode">已进入沉浸模式：%1$s</string>
 
-    <string name="immersive_gold_unknown">Could not check which devices Gold holds; starting without keeping any of them free</string>
-    <string name="immersive_selection_invalid">The saved device selection is not valid; fix it in Immersive input settings</string>
-    <string name="immersive_selection_filtered">Every selected device is held by Gold, so there is nothing left to take</string>
-
+    <string name="immersive_gold_unknown">无法确认 Gold 占用了哪些设备，将在不去避让的情况下启动</string>
+    <string name="immersive_selection_invalid">已保存的设备选择无效，请在“沉浸输入”设置中修正</string>
+    <string name="immersive_selection_filtered">所选设备全部由 Gold 占用，没有可接管的设备</string>
     <!-- Immersive input sources -->
-    <string name="cat_immersive_title">Immersive Mode</string>
-    <string name="cat_immersive_subtitle">Full-screen input control, the toggle key and the input source</string>
-    <string name="immersive_inputs_title">Immersive input</string>
-    <string name="immersive_inputs_subtitle">Choose where immersive mode takes its input from</string>
-    <string name="section_immersive_inputs_source">Input source</string>
-    <string name="section_immersive_inputs_direct">Event nodes to take</string>
-    <string name="section_immersive_inputs_scope">What this covers</string>
+    <string name="cat_immersive_title">沉浸模式</string>
+    <string name="cat_immersive_subtitle">全屏输入控制、切换按键与输入来源</string>
+    <string name="immersive_inputs_title">沉浸输入</string>
+    <string name="immersive_inputs_subtitle">选择沉浸模式从哪里获取输入</string>
+    <string name="section_immersive_inputs_source">输入来源</string>
+    <string name="section_immersive_inputs_direct">要接管的 event 节点</string>
+    <string name="section_immersive_inputs_scope">覆盖范围</string>
 
-    <string name="immersive_inputs_direct_blurb">Currently: Anland takes the physical event nodes itself, and Android cannot see them while it does. Requires root.</string>
-    <string name="immersive_inputs_bus_hint">Gold remaps the keyboard; Anland takes its output exclusively and sends it directly to the desktop.</string>
-    <string name="immersive_inputs_combined_hint">Anland takes touch, pointers and gamepads together with Gold\'s remapped keyboard output.</string>
-    <string name="immersive_inputs_bus_scope">Requires root and the Gold Keyboard Remaps module. All remapped keyboard keys, including Meta and system shortcuts, go to the desktop during the session. Touch, mouse and Android gestures stay available. Leaving the app or locking the screen releases the keyboard.</string>
-    <string name="immersive_inputs_direct_hint">Only the devices ticked below are taken, including gamepads. Devices Gold has confirmed it holds are shown but cannot be selected. Gamepads pause Android input only; the Linux desktop reads them directly through the mounted /dev/input.</string>
-    <string name="immersive_inputs_auto">Choose devices automatically</string>
+    <string name="immersive_inputs_direct_blurb">当前：Anland 自己接管物理 event 节点，接管期间安卓看不到这些设备。需要 root。</string>
+    <string name="immersive_inputs_bus_hint">Gold 按配置重映射键盘，Anland 独占其输出并直接送入桌面。</string>
+    <string name="immersive_inputs_combined_hint">Anland 同时接管触摸、指针、手柄和 Gold 重映射后的键盘输出。</string>
+    <string name="immersive_inputs_bus_scope">需要 root 和 Gold Keyboard Remaps 模块。沉浸期间，重映射后的全部键盘按键（包括 Meta 和系统快捷键）直接送入桌面。触摸、鼠标和安卓手势仍可使用；离开 App 或锁屏时归还键盘。</string>
+    <string name="immersive_inputs_direct_hint">只有下面勾选的设备会被接管，包括手柄。Gold 已确认占用的设备会显示，但无法选择。手柄仅暂停安卓侧输入，Linux 桌面通过挂载的 /dev/input 直接读取。</string>
+    <string name="immersive_inputs_auto">自动选择设备</string>
     <string-array name="immersive_source_options">
-        <item>Anland takes the devices (direct)</item>
-        <item>Gold keyboard directly to desktop</item>
-        <item>Direct touch, pointers and gamepads + Gold keyboard</item>
+        <item>Anland 接管设备（直连）</item>
+        <item>Gold 键盘直连桌面</item>
+        <item>触摸、指针、手柄直连 + Gold 键盘</item>
     </string-array>
-    <string name="immersive_source_unavailable">Requires the Gold Keyboard Remaps module, which is not installed or not running</string>
-    <string name="immersive_auto_enter">Automatically enter immersive mode</string>
-    <string name="immersive_auto_enter_hint">Automatically send the Gold keyboard to the desktop when this app returns to the foreground. Touch and Android gestures stay available.</string>
-    <string name="immersive_inputs_loading">Checking devices…</string>
-    <string name="immersive_inputs_found">Gold’s occupied devices are shown but cannot be selected.</string>
-    <string name="immersive_inputs_unknown">Could not check which devices Gold holds, so none are marked as taken. Nothing here is known to be free.</string>
-    <string name="immersive_inputs_occupied">✕ %1$s — held by Gold</string>
-    <string name="immersive_inputs_system_power">✕ %1$s — kept with Android to preserve power button control</string>
-    <string name="device_class_keyboard">Keyboard</string>
-    <string name="device_class_keys">Button node</string>
-    <string name="device_class_mouse">Mouse</string>
-    <string name="device_class_gamepad">Gamepad / joystick</string>
-    <string name="device_class_touchpad">Touchpad</string>
-    <string name="device_class_touchscreen">Touchscreen</string>
+    <string name="immersive_source_unavailable">需要 Gold Keyboard Remaps 模块，当前未安装或未运行</string>
+    <string name="immersive_auto_enter">自动进入沉浸模式</string>
+    <string name="immersive_auto_enter_hint">App 回到前台时自动将 Gold 键盘交给桌面，触摸和安卓手势仍可使用。</string>
+    <string name="immersive_inputs_loading">正在检查设备…</string>
+    <string name="immersive_inputs_found">Gold 占用的设备会显示，但无法选择。</string>
+    <string name="immersive_inputs_unknown">无法确认 Gold 占用了哪些设备，因此没有标记任何设备为已占用。这里没有任何设备可以确定是空闲的。</string>
+    <string name="immersive_inputs_occupied">✕ %1$s — 由 Gold 占用</string>
+    <string name="immersive_inputs_system_power">✕ %1$s — 为保留电源键控制，交由安卓处理</string>
+    <string name="device_class_keyboard">键盘</string>
+    <string name="device_class_keys">按键节点</string>
+    <string name="device_class_mouse">鼠标</string>
+    <string name="device_class_gamepad">手柄 / 摇杆</string>
+    <string name="device_class_touchpad">触摸板</string>
+    <string name="device_class_touchscreen">触摸屏</string>
     <string name="bus_usb">USB</string>
-    <string name="bus_bluetooth">Bluetooth</string>
-    <string name="bus_builtin">Built-in</string>
-    <string name="bus_virtual">Virtual</string>
+    <string name="bus_bluetooth">蓝牙</string>
+    <string name="bus_builtin">内置</string>
+    <string name="bus_virtual">虚拟</string>
     <string name="bus_i2c">I2C</string>
     <string name="bus_spi">SPI</string>
-    <string name="bus_other">Bus %1$s</string>
-    <string name="immersive_inputs_remembered">Saved: %1$s. Usable now: %2$s.</string>
-    <string name="immersive_inputs_all_filtered">Every device you saved is held by Gold. Immersive mode will not start until that changes; your selection has been left as it is.</string>
-    <string name="immersive_inputs_none">No input devices were found.</string>
-    <string name="immersive_inputs_unavailable">Could not list input devices: root was denied or is unavailable.</string>
-
+    <string name="bus_other">总线 %1$s</string>
+    <string name="immersive_inputs_remembered">已保存：%1$s。当前可用：%2$s。</string>
+    <string name="immersive_inputs_all_filtered">你保存的设备全部由 Gold 占用。在情况改变前沉浸模式不会启动；你的选择保持不变。</string>
+    <string name="immersive_inputs_none">没有发现任何输入设备。</string>
+    <string name="immersive_inputs_unavailable">无法列出输入设备：root 被拒绝或不可用。</string>
     <!-- Accessibility -->
-    <string name="accessibility_switch">Accessibility Key Interception</string>
-    <string name="accessibility_hint">Intercept function keys (Fn, F1-F12 etc.) via AccessibilityService and convert tablet-keyboard Back/Browser Back to ESC. Enable this if external keyboard Fn combos or ESC don\'t reach the desktop correctly. Requires Accessibility permission granted in system Settings &gt; Accessibility (one-time).</string>
-
+    <string name="accessibility_switch">无障碍按键拦截</string>
+    <string name="accessibility_hint">通过无障碍服务拦截功能键（Fn、F1-F12 等），并将平板键盘上报的返回/浏览器后退键转换为 ESC。如果外接键盘的 Fn 组合键或 ESC 无法正确传到桌面，请启用此项。需要在系统 设置 &gt; 无障碍 中授予无障碍权限（仅需一次）。</string>
     <!-- Extra keys bar -->
     <!-- Custom layout editor -->
-
     <!-- Touchpad -->
-    <string name="touchpad_mode_switch">Touchpad Mode (relative movement)</string>
-    <string name="touchpad_hint">ON: finger slides move mouse cursor (relative). OFF: touch maps directly to screen (absolute).</string>
-    <string name="pointer_capture_switch">Capture external pointer</string>
-    <string name="pointer_capture_hint">Locks an external mouse or touchpad to the desktop view and uses relative movement, so reaching the top or bottom edge will not reveal Android system bars. Use Android Back to release temporarily; click the desktop view to capture again. Screen touch input is unaffected.</string>
-    <string name="pointer_capture_released">External pointer released. Click the desktop view to capture it again.</string>
-    <string name="mouse_pointer_sensitivity_label">Mouse Pointer Sensitivity (Acceleration)</string>
-    <string name="mouse_sensitivity_label">Touchpad Pointer Sensitivity (Acceleration)</string>
-    <string name="mouse_accel_value">%1$.1fx</string>
-    <string name="scroll_reverse_switch">Reverse scroll direction</string>
-    <string name="scroll_reverse_hint">ON: content follows your fingers ("natural" scrolling). Applies to two-finger scrolling on both the on-screen and the physical touchpad.</string>
-    <string name="scroll_speed_label">Two-finger scroll speed</string>
+    <string name="touchpad_mode_switch">触摸板模式（相对移动）</string>
+    <string name="touchpad_hint">开启：手指滑动移动鼠标光标（相对）。关闭：触摸直接映射到屏幕（绝对）。</string>
+    <string name="pointer_capture_switch">捕获外接指针</string>
+    <string name="pointer_capture_hint">开启后将外接鼠标或触摸板锁定在桌面画面内并使用相对移动，移到屏幕顶部或底部不会呼出 Android 状态栏或导航栏。按 Android 返回键可暂时释放，点击桌面画面重新捕获；屏幕触摸不受影响。</string>
+    <string name="pointer_capture_released">外接指针已释放。点击桌面画面可重新捕获。</string>
+    <string name="mouse_pointer_sensitivity_label">鼠标指针灵敏度（加速度）</string>
+    <string name="mouse_sensitivity_label">触摸板指针灵敏度（加速度）</string>
+    <string name="mouse_accel_value">%1$.1f 倍</string>
+    <string name="scroll_reverse_switch">反向滚动</string>
+    <string name="scroll_reverse_hint">开启后内容跟随手指移动（“自然滚动”）。对屏上触摸板和物理触摸板的双指滚动同时生效。</string>
+    <string name="scroll_speed_label">双指滚动速度</string>
     <string name="scroll_speed_value">%1$.2f</string>
-    <string name="threshold_factor_value">%1$.2f× touch slop</string>
-    <string name="scroll_threshold_label">Scroll detection threshold</string>
-    <string name="scroll_threshold_hint">How far a finger must travel before it counts as moving. Lower this if a pinch is being treated as a scroll.</string>
-    <string name="move_threshold_label">Gesture commit threshold</string>
-    <string name="move_threshold_hint">How far the leading finger must travel before an ambiguous two-finger gesture is resolved. Lower this if scrolling is slow to engage.</string>
-    <string name="gesture_scale_label">Gesture magnitude</string>
-    <string name="gesture_scale_value">%1$.0f px</string>
-    <string name="gesture_scale_hint">Gestures forwarded as touch (pinch, three or more fingers) are mapped into a square of this size centred on the pointer. Larger values make the same finger movement travel further.</string>
-    <string name="disable_multi_finger_switch">Disable pinch and multi-finger gestures</string>
-    <string name="disable_multi_finger_hint">ON: two-finger pinch/zoom and three-or-more-finger gestures are swallowed and never reach the desktop; two-finger scrolling and two-finger right-click still work. OFF: pinch and multi-finger gestures are forwarded to the desktop as touch.</string>
-
+    <string name="threshold_factor_value">%1$.2f 倍触摸阈值</string>
+    <string name="scroll_threshold_label">滚动判定阈值</string>
+    <string name="scroll_threshold_hint">手指移动多远才算“在动”。如果双指开合被当成滚动，调低此值。</string>
+    <string name="move_threshold_label">手势定性阈值</string>
+    <string name="move_threshold_hint">主导手指移动多远才对双指手势定性。如果滚动起步迟滞，调低此值。</string>
+    <string name="gesture_scale_label">手势幅度</string>
+    <string name="gesture_scale_value">%1$.0f 像素</string>
+    <string name="gesture_scale_hint">转为触摸的手势（双指开合、三指及以上）会映射到以指针为中心、边长为此值的正方形内。值越大，相同的手指移动幅度越大。</string>
+    <string name="disable_multi_finger_switch">禁用双指开合与多指手势</string>
+    <string name="disable_multi_finger_hint">开启：双指捏合/张开和三指及以上的手势会被吞掉，不会传到桌面；双指滚动和双指右键仍正常。关闭：双指开合、多指手势作为触摸转发到桌面。</string>
     <!-- Connection -->
-    <string name="socket_path_label">Daemon socket path</string>
-    <string name="second_window_label">Open a second window (own daemon &amp; title)</string>
-    <string name="second_window_name_hint">Window name (e.g. work)</string>
-    <string name="second_window_open">Open second window</string>
-    <string name="root_switch">Connect with root (helper)</string>
-    <string name="root_hint">Launches a root helper (su) that connects to the socket and passes the connection back to the app. Takes effect on next connect (reopen the app).</string>
-    <string name="topapp_switch">Enable foreground scheduling (root)</string>
-    <string name="topapp_hint">Gives the Linux desktop Android foreground CPU priority. Select the scheduling scope below; changes take effect on next connect.</string>
-    <string name="topapp_mode_label">Foreground scheduling scope</string>
+    <string name="socket_path_label">守护进程套接字路径</string>
+    <string name="second_window_label">打开第二个窗口（独立守护进程与标题）</string>
+    <string name="second_window_name_hint">窗口名称（如 work）</string>
+    <string name="second_window_open">打开第二个窗口</string>
+    <string name="root_switch">使用 root 连接（辅助程序）</string>
+    <string name="root_hint">启动一个 root 辅助程序（su）连接到套接字，并将连接传回应用。下次连接时生效（请重新打开应用）。</string>
+    <string name="topapp_switch">启用前台调度（root）</string>
+    <string name="topapp_hint">让 Linux 桌面获得 Android 前台 CPU 优先级。请在下方选择调度范围；下次连接时生效。</string>
+    <string name="topapp_mode_label">前台调度范围</string>
     <string-array name="topapp_mode_options">
-        <item>1 - Focused application</item>
-        <item>2 - Whole desktop session</item>
+        <item>1 - 当前焦点应用</item>
+        <item>2 - 整个桌面会话</item>
     </string-array>
-    <string name="topapp_mode_focused_hint">Mode 1: Keeps KWin and the active application scope in top-app. Existing processes in that scope and child processes are included; the previous application is restored when focus changes.</string>
-    <string name="topapp_mode_whole_hint">Mode 2: Moves the whole Anland desktop process tree into top-app until disconnect. Background applications and services are also boosted, using more power but giving the session maximum priority.</string>
-    <string name="topapp_stops_label">Scan stop process names (optional)</string>
-    <string name="topapp_stops_hint">e.g. systemd:init (":"-separated); empty uses built-in defaults</string>
-    <string name="mic_switch">Forward microphone to desktop</string>
-    <string name="mic_hint">Desktop audio always plays through this device\'s speaker. Enabling this also sends the mic the other way. Takes effect on next connect (reopen the app).</string>
-    <string name="camera_switch">Forward camera to desktop</string>
-    <string name="camera_hint">Lets the desktop open this device\'s camera(s) as a video source. The camera only turns on while the desktop is actively recording. Takes effect on next return to the app; first use prompts for the camera permission.</string>
-    <string name="audio_keepalive_switch">Audio keep-alive</string>
-    <string name="audio_keepalive_hint">Keep the audio output stream running so short Linux sounds (volume ticks, key clicks) always play instantly. Costs a little standby power. Off: the audio path sleeps after ~1.5 s of desktop silence and wakes for the next sound. If the audible latency does not match your preference, you may need to tune the Audio latency presets below.</string>
-    <string name="audio_latency_title">Audio latency</string>
-    <string name="latency_speaker_label">Speaker (desktop → phone)</string>
-    <string name="latency_mic_label">Microphone (phone → desktop)</string>
-    <string name="latency_hint">Lower presets cut latency but can cause crackles/dropouts on a busy device. Applies when you return to the desktop view.</string>
-
+    <string name="topapp_mode_focused_hint">模式 1：KWin 和当前活动应用的 scope 保持在 top-app。该 scope 中已有的进程及其子进程都会包含；焦点切换时恢复上一个应用。</string>
+    <string name="topapp_mode_whole_hint">模式 2：连接期间将整个 Anland 桌面进程树放入 top-app。后台应用和服务也会提升，功耗更高，但整个会话可获得最高调度优先级。</string>
+    <string name="topapp_stops_label">扫描结束进程名（可选）</string>
+    <string name="topapp_stops_hint">例如 systemd:init（用“:”分隔）；留空使用内置列表</string>
+    <string name="mic_switch">将麦克风转发到桌面</string>
+    <string name="mic_hint">桌面音频始终通过本设备的扬声器播放。启用此项还会把麦克风反向发送到桌面。下次连接时生效（请重新打开应用）。</string>
+    <string name="camera_switch">将摄像头转发到桌面</string>
+    <string name="camera_hint">允许桌面将本设备的摄像头作为视频源打开。仅在桌面正在录制时摄像头才会开启。下次返回应用时生效；首次使用会请求摄像头权限。</string>
+    <string name="audio_keepalive_switch">音频保活</string>
+    <string name="audio_keepalive_hint">保持音频输出流持续活跃，让 Linux 的短促系统音（音量提示、按键音）始终即时播放；会略增待机功耗。关闭时桌面静默约1.5秒后音频通路自动休眠，下次出声时自动唤醒。开启后若听感延迟不合预期，可能需要配合调整下方的「音频延迟」预设。</string>
+    <string name="audio_latency_title">音频延迟</string>
+    <string name="latency_speaker_label">扬声器（桌面 → 手机）</string>
+    <string name="latency_mic_label">麦克风（手机 → 桌面）</string>
+    <string name="latency_hint">更低的预设可降低延迟，但在设备繁忙时可能造成杂音/丢帧。返回桌面视图时生效。</string>
     <!-- Resolution -->
-    <string name="width_hint">Width (e.g. 1920)</string>
-    <string name="height_hint">Height (e.g. 1080)</string>
-    <string name="resolution_hint">Pick a preset or enter values manually. Leave 0 for native resolution. \"Screen ×\" scales this device\'s panel (landscape). Takes effect on next connect.</string>
-    <string name="auto_stretch_switch">Auto-stretch display</string>
-    <string name="auto_stretch_hint">When ON, the display fills the screen (stretched if needed). When OFF, the display maintains the custom resolution aspect ratio with black bars (letterboxing). Input coordinates are automatically mapped.</string>
-
+    <string name="width_hint">宽度（例如 1920）</string>
+    <string name="height_hint">高度（例如 1080）</string>
+    <string name="resolution_hint">选择预设或手动输入数值。填 0 表示原生分辨率。\"Screen ×\" 会按本设备面板（横向）缩放。下次连接时生效。</string>
+    <string name="auto_stretch_switch">自动拉伸显示</string>
+    <string name="auto_stretch_hint">开启时，显示内容会填满屏幕（必要时拉伸）。关闭时，显示内容保持自定义分辨率的宽高比，四周留黑边（信箱模式）。输入坐标会自动映射。</string>
     <!-- Settings notification -->
-    <string name="notification_switch">Show settings notification</string>
-    <string name="notification_hint">Show a persistent notification while the app is open; tapping it jumps straight to Settings. Turn off to hide it. Takes effect on next return to the app.</string>
+    <string name="notification_switch">显示设置通知</string>
+    <string name="notification_hint">应用打开时显示一条常驻通知，点击可直接进入设置。关闭后不再显示。下次返回应用时生效。</string>
     <string name="notification_channel_name">Anland</string>
-    <string name="notification_channel_desc">Anland quick access</string>
+    <string name="notification_channel_desc">Anland 快速访问</string>
     <string name="notification_title">Anland</string>
-    <string name="notification_text">Tap to open Settings</string>
-
+    <string name="notification_text">点击进入设置</string>
     <!-- Toasts -->
-    <string name="toast_no_picker">No file picker available</string>
-    <string name="toast_read_failed">Could not read file</string>
-
+    <string name="toast_no_picker">没有可用的文件选择器</string>
+    <string name="toast_read_failed">无法读取文件</string>
     <!-- Hardware key names -->
-    <string name="key_volume_up">Volume Up</string>
-    <string name="key_volume_down">Volume Down</string>
-    <string name="key_volume_mute">Volume Mute</string>
-    <string name="key_power">Power</string>
-    <string name="key_camera">Camera</string>
-    <string name="key_headset_hook">Headset Hook</string>
-    <string name="key_media_play_pause">Media Play/Pause</string>
-    <string name="key_media_next">Media Next</string>
-    <string name="key_media_previous">Media Previous</string>
-    <string name="key_brightness_up">Brightness Up</string>
-    <string name="key_brightness_down">Brightness Down</string>
-    <string name="key_home">Home</string>
-    <string name="key_back">Back</string>
-
+    <string name="key_volume_up">音量+</string>
+    <string name="key_volume_down">音量-</string>
+    <string name="key_volume_mute">静音</string>
+    <string name="key_power">电源</string>
+    <string name="key_camera">相机</string>
+    <string name="key_headset_hook">耳机线控</string>
+    <string name="key_media_play_pause">播放/暂停</string>
+    <string name="key_media_next">下一曲</string>
+    <string name="key_media_previous">上一曲</string>
+    <string name="key_brightness_up">亮度+</string>
+    <string name="key_brightness_down">亮度-</string>
+    <string name="key_home">主屏</string>
+    <string name="key_back">返回</string>
     <!-- Audio latency presets -->
     <string-array name="latency_labels">
-        <item>Auto (engine default)</item>
-        <item>Ultra Low (~1 ms)</item>
-        <item>Low (~3 ms)</item>
-        <item>Balanced (~5 ms)</item>
-        <item>Safe (~10 ms)</item>
-        <item>Relaxed (~20 ms)</item>
+        <item>自动（引擎默认）</item>
+        <item>超低（约 1 毫秒）</item>
+        <item>低（约 3 毫秒）</item>
+        <item>均衡（约 5 毫秒）</item>
+        <item>安全（约 10 毫秒）</item>
+        <item>宽松（约 20 毫秒）</item>
     </string-array>
-
     <!-- Resolution presets -->
     <string-array name="res_preset_labels">
-        <item>Preset…</item>
-        <item>Auto (0×0, native)</item>
+        <item>预设…</item>
+        <item>自动（0×0，原生）</item>
         <item>4K (3840×2160)</item>
         <item>2K (2560×1440)</item>
         <item>1080p (1920×1080)</item>
         <item>720p (1280×720)</item>
         <item>480p (854×480)</item>
-        <item>Screen × 1.0</item>
-        <item>Screen × 0.8</item>
-        <item>Screen × 0.75</item>
-        <item>Screen × 0.5</item>
-        <item>Screen × 0.25</item>
+        <item>屏幕 × 1.0</item>
+        <item>屏幕 × 0.8</item>
+        <item>屏幕 × 0.75</item>
+        <item>屏幕 × 0.5</item>
+        <item>屏幕 × 0.25</item>
     </string-array>
-    <string name="pad_tap">External touchpad: synthetic clicks</string>
-    <string name="pad_tip">Controls single- and two-finger taps plus long-press drag on captured and immersive external touchpads. Physical buttons still work when disabled. The on-screen touchpad is unchanged.</string>
-    <string name="pad_right_zone">Right side of the touchpad = right click</string>
-    <string name="pad_right_zone_hint">OFF (default): pressing the right side also sends a left click, so accidental context menus are avoided; right-click stays available as a two-finger tap. ON: pressing the right half of a single-button touchpad sends a right click.</string>
-    <string name="pad_guard">Ignore external touchpad taps for %1$d ms after scrolling (0 = off)</string>
-    <string name="pad_debug">Touchpad debug log (AnlandTouchpad)</string>
+    <string name="pad_tap">外接触摸板：合成点击</string>
+    <string name="pad_tip">控制指针捕获及沉浸模式外接触摸板的单指轻击、双指轻击和长按拖拽；关闭后实体按键仍然可用。屏幕触摸板不受影响。</string>
+    <string name="pad_right_zone">按触摸板右侧为右键</string>
+    <string name="pad_right_zone_hint">关闭（默认）：按触摸板右侧也发送左键，避免误触右键菜单；右键可用双指轻点。开启：单键触摸板按右侧发送右键。</string>
+    <string name="pad_guard">滚动结束后 %1$d ms 内忽略外接触摸板轻击（0 = 关闭）</string>
+    <string name="pad_debug">触摸板调试日志（AnlandTouchpad）</string>
 
     <!-- HUD editor -->
-    <string name="hud_delete_short">DEL</string>
-    <string name="hud_duplicate_short">DUP</string>
-    <string name="hud_delete_confirm">CONFIRM?</string>
-    <string name="hud_title_button_properties">BUTTON PROPERTIES</string>
-    <string name="hud_properties_title">%1$s PROPERTIES</string>
-    <string name="hud_dock_button_properties">DOCK BUTTON PROPERTIES</string>
-    <string name="hud_widget_button">BUTTON</string>
-    <string name="hud_widget_super_gesture">SUPER GESTURE</string>
-    <string name="hud_widget_trackpoint">TRACKPOINT</string>
-    <string name="hud_widget_touchpad">TOUCHPAD</string>
-    <string name="hud_widget_scrollbar">SCROLLBAR</string>
-    <string name="hud_widget_dpad">D-PAD</string>
-    <string name="hud_display_label">Display Label</string>
-    <string name="hud_width_dp">Width (dp):</string>
-    <string name="hud_height_dp">Height (dp):</string>
-    <string name="hud_corner_dp">Corner (dp):</string>
-    <string name="hud_opacity_percent">Opacity (%):</string>
-    <string name="hud_action_mapping">Action Mapping:</string>
-    <string name="hud_main_action">Main Action</string>
-    <string name="hud_popup_swipe_up">Popup (Swipe Up)</string>
-    <string name="hud_swipe_actions">Direction actions</string>
-    <string name="hud_direction_left">Left</string>
-    <string name="hud_direction_right">Right</string>
-    <string name="hud_direction_up">Up</string>
-    <string name="hud_direction_down">Down</string>
-    <string name="hud_trackpoint_mode">TrackPoint Mode:</string>
-    <string name="hud_mode">Mode</string>
-    <string name="hud_mode_mouse">MOUSE</string>
-    <string name="hud_mode_scroll">SCROLL</string>
-    <string name="hud_orientation_vertical">VERTICAL</string>
-    <string name="hud_orientation_horizontal">HORIZONTAL</string>
-    <string name="hud_sensitivity_x10">Sensitivity (x10):</string>
-    <string name="hud_deadzone_dp">Deadzone (dp):</string>
-    <string name="hud_color_theme">Color Theme:</string>
-    <string name="hud_haptic_feedback">Haptic Feedback</string>
-    <string name="hud_hold_to_repeat">Repeat while held</string>
-    <string name="hud_nudge_position">Fine-tune Position (Nudge):</string>
-    <string name="hud_unassigned">Unassigned</string>
-    <string name="hud_text_action">Text: %1$s</string>
-    <string name="hud_system_action">System: %1$s</string>
-    <string name="hud_key_code">Key %1$d</string>
+    <string name="hud_delete_short">删除</string>
+    <string name="hud_duplicate_short">复制</string>
+    <string name="hud_delete_confirm">确认？</string>
+    <string name="hud_title_button_properties">按钮属性</string>
+    <string name="hud_properties_title">%1$s 属性</string>
+    <string name="hud_dock_button_properties">扩展栏按钮属性</string>
+    <string name="hud_widget_button">按钮</string>
+    <string name="hud_widget_super_gesture">超级手势</string>
+    <string name="hud_widget_trackpoint">指点杆</string>
+    <string name="hud_widget_touchpad">触摸板</string>
+    <string name="hud_widget_scrollbar">滚动条</string>
+    <string name="hud_widget_dpad">方向键</string>
+    <string name="hud_display_label">显示标签</string>
+    <string name="hud_width_dp">宽度（dp）：</string>
+    <string name="hud_height_dp">高度（dp）：</string>
+    <string name="hud_corner_dp">圆角（dp）：</string>
+    <string name="hud_opacity_percent">不透明度（%）：</string>
+    <string name="hud_action_mapping">动作映射：</string>
+    <string name="hud_main_action">主动作</string>
+    <string name="hud_popup_swipe_up">弹出动作（上滑）</string>
+    <string name="hud_swipe_actions">方向动作</string>
+    <string name="hud_direction_left">左</string>
+    <string name="hud_direction_right">右</string>
+    <string name="hud_direction_up">上</string>
+    <string name="hud_direction_down">下</string>
+    <string name="hud_trackpoint_mode">指点杆模式：</string>
+    <string name="hud_mode">模式</string>
+    <string name="hud_mode_mouse">鼠标</string>
+    <string name="hud_mode_scroll">滚动</string>
+    <string name="hud_orientation_vertical">竖向</string>
+    <string name="hud_orientation_horizontal">横向</string>
+    <string name="hud_sensitivity_x10">灵敏度（×10）：</string>
+    <string name="hud_deadzone_dp">死区（dp）：</string>
+    <string name="hud_color_theme">颜色主题：</string>
+    <string name="hud_haptic_feedback">触觉反馈</string>
+    <string name="hud_hold_to_repeat">按住时连续发送</string>
+    <string name="hud_nudge_position">微调位置：</string>
+    <string name="hud_unassigned">未分配</string>
+    <string name="hud_text_action">文本：%1$s</string>
+    <string name="hud_system_action">系统：%1$s</string>
+    <string name="hud_key_code">按键 %1$d</string>
     <string-array name="hud_color_theme_names">
-        <item>Slate</item>
-        <item>Cyan</item>
-        <item>Crimson</item>
-        <item>Amber</item>
-        <item>Emerald</item>
-        <item>Stealth</item>
+        <item>石板色</item>
+        <item>青色</item>
+        <item>深红</item>
+        <item>琥珀</item>
+        <item>翡翠</item>
+        <item>隐匿</item>
     </string-array>
 
-    <string name="hud_picker_back">BACK</string>
-    <string name="hud_picker_title">SELECT KEY / ACTION</string>
-    <string name="hud_picker_search">Search keys…</string>
-    <string name="hud_tab_keys">KEYS</string>
-    <string name="hud_tab_mods_system">MODS &amp; SYS</string>
-    <string name="hud_tab_combo">COMBO</string>
-    <string name="hud_none">None</string>
-    <string name="hud_system_soft_keyboard">Soft Keyboard</string>
-    <string name="hud_system_virtual_keyboard">Virtual Keyboard</string>
-    <string name="hud_system_settings">Settings</string>
-    <string name="hud_system_mouse_left">Mouse Left</string>
-    <string name="hud_system_mouse_right">Mouse Right</string>
-    <string name="hud_system_mouse_middle">Mouse Middle</string>
-    <string name="hud_system_scroll_up">Scroll Up</string>
-    <string name="hud_system_scroll_down">Scroll Down</string>
-    <string name="hud_combo_slot">Slot %1$d</string>
-    <string name="hud_combo_builder_hint">Pick up to 3 keys. Active slot is highlighted; pick a key to fill it.</string>
-    <string name="hud_combo_clear_all">CLEAR ALL</string>
-    <string name="hud_combo_apply">APPLY COMBO</string>
-    <string name="hud_combo_empty">(empty)</string>
-    <string name="hud_layout_1">Switch to layout 1</string>
-    <string name="hud_layout_2">Switch to layout 2</string>
-    <string name="hud_layout_3">Switch to layout 3</string>
-    <string name="hud_slot_1">Layout 1</string>
-    <string name="hud_slot_2">Layout 2</string>
-    <string name="hud_slot_3">Layout 3</string>
-    <string name="hud_export_choose">Choose a layout to export</string>
-    <string name="hud_import_choose">Choose a layout to replace</string>
-    <string name="hud_import_source_choose">Choose a layout from the backup</string>
-    <string name="hud_appearance">Appearance</string>
-    <string name="hud_conditions">Trigger conditions</string>
-    <string name="hud_send_on_release">Send on release (repeat unavailable)</string>
-    <string name="hud_send_immediately">Send immediately on press</string>
-    <string name="hud_system_toggle_hud_hidden">Hide / restore HUD</string>
-    <string name="hud_long_press_action">Long-press action</string>
-    <string name="hud_long_press_delay">Hold time (ms)</string>
-    <string name="hud_long_press_hint">Send on release suppresses the main action after a long press. In immediate mode, the main action has already been sent.</string>
-    <string name="hud_resize_panel">Drag to resize the properties panel</string>
+    <string name="hud_picker_back">返回</string>
+    <string name="hud_picker_title">选择按键 / 动作</string>
+    <string name="hud_picker_search">搜索按键…</string>
+    <string name="hud_tab_keys">按键</string>
+    <string name="hud_tab_mods_system">修饰键与系统</string>
+    <string name="hud_tab_combo">组合键</string>
+    <string name="hud_none">无</string>
+    <string name="hud_system_soft_keyboard">软键盘</string>
+    <string name="hud_system_virtual_keyboard">虚拟键盘</string>
+    <string name="hud_system_settings">设置</string>
+    <string name="hud_system_mouse_left">鼠标左键</string>
+    <string name="hud_system_mouse_right">鼠标右键</string>
+    <string name="hud_system_mouse_middle">鼠标中键</string>
+    <string name="hud_system_scroll_up">向上滚动</string>
+    <string name="hud_system_scroll_down">向下滚动</string>
+    <string name="hud_combo_slot">槽位 %1$d</string>
+    <string name="hud_combo_builder_hint">最多选择 3 个按键。高亮槽位为当前槽位，选择按键即可填入。</string>
+    <string name="hud_combo_clear_all">清除全部</string>
+    <string name="hud_combo_apply">应用组合键</string>
+    <string name="hud_combo_empty">（空）</string>
+    <string name="hud_layout_1">切换布局 1</string>
+    <string name="hud_layout_2">切换布局 2</string>
+    <string name="hud_layout_3">切换布局 3</string>
+    <string name="hud_slot_1">布局 1</string>
+    <string name="hud_slot_2">布局 2</string>
+    <string name="hud_slot_3">布局 3</string>
+    <string name="hud_export_choose">选择要导出的布局</string>
+    <string name="hud_import_choose">选择要覆盖的布局</string>
+    <string name="hud_import_source_choose">选择备份中的布局</string>
+    <string name="hud_appearance">外观</string>
+    <string name="hud_conditions">条件触发</string>
+    <string name="hud_send_on_release">松手发送（无法连续发送）</string>
+    <string name="hud_send_immediately">按下立即发送</string>
+    <string name="hud_system_toggle_hud_hidden">隐藏 / 恢复 HUD</string>
+    <string name="hud_long_press_action">长按触发</string>
+    <string name="hud_long_press_delay">长按时间（毫秒）</string>
+    <string name="hud_long_press_hint">松手发送模式下，长按触发后不会发送主动作；立即发送模式下，主动作已经发送。</string>
+    <string name="hud_resize_panel">拖动以调整属性面板大小</string>
 </resources>
