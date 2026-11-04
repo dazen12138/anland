@@ -81,8 +81,10 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.name }}
+          name: ${{ matrix.name }}.apk
           path: consumers/anland_v5/android_consumer/app/build/outputs/apk/${{ matrix.name }}.apk
+          archive: false
+          overwrite: true
 
   build-daemon:
     runs-on: ubuntu-latest
