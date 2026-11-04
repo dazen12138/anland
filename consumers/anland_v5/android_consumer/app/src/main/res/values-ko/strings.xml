@@ -107,6 +107,7 @@
     <string name="pointer_capture_switch">외부 포인터 캡처</string>
     <string name="pointer_capture_hint">외부 마우스나 터치패드를 데스크톱 화면에 고정하고 상대 좌표 이동을 사용하므로, 화면 상단이나 하단 가장자리에 닿아도 안드로이드 시스템 바가 나타나지 않습니다. 뒤로가기를 눌러 일시적으로 해제할 수 있으며, 데스크톱 화면을 클릭하면 다시 캡처됩니다. 화면 터치 입력에는 영향을 주지 않습니다.</string>
     <string name="pointer_capture_released">외부 포인터가 해제되었습니다. 데스크톱 화면을 클릭하면 다시 캡처됩니다.</string>
+    <string name="mouse_pointer_sensitivity_label">마우스 포인터 감도 (가속)</string>
     <string name="mouse_sensitivity_label">터치패드 포인터 감도 (가속)</string>
     <string name="mouse_accel_value">%1$.1fx</string>
     <string name="scroll_reverse_switch">스크롤 방향 반전</string>
