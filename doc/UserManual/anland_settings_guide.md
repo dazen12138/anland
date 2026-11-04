@@ -1,413 +1,407 @@
-# Anland Settings Guide
+# Anland 设置使用说明
 
-> [中文版](anland_settings_guide_zh.md)
+本文对应 Anland Android 应用中的“设置”页面。文中的“桌面”均指 Anland 正在显示的 Linux 桌面，不是 Android 主屏幕。
 
-This guide corresponds to the **Settings** screen in the Anland Android app. Here, "desktop" means the Linux desktop displayed by Anland, not the Android home screen.
+设置页中的选项会自动保存；HUD 布局需要在编辑器中保存。
 
-Settings are saved automatically; HUD layouts must be saved in the editor.
+部分选项要等桌面重新连接后才会应用。从设置返回 Anland 桌面时通常会触发重新连接。
 
-Some options apply only after the desktop reconnects. Returning from Settings to the Anland desktop normally triggers a reconnect.
-
-- Input, HUD, and display layout settings take effect when you return to the desktop view.
-- Connection, audio, and output resolution settings take effect on the next connection. Returning from Settings to the desktop normally triggers one.
-- Screen orientation takes effect after you exit and reopen Anland.
+- 输入、HUD 和显示布局类设置：返回桌面视图后生效。
+- 连接、音频和输出分辨率：下次连接时生效；从设置返回桌面通常就会触发一次新连接。
+- 屏幕方向：退出并重新打开 Anland 后生效。
 
 <a id="settings-nav"></a>
-## 🧭 Quick navigation
+## 🧭 快速导航
 
-- [⌨️ Keyboard & Keys](#keyboard)
-- [🖱️ Touchpad & Mouse](#touchpad-mouse)
-- [🔌 Connection](#connection)
-- [🖥️ Display Resolution](#resolution)
-- [🎮 Immersive Mode](#immersive)
-- [⚙️ General](#general)
+- [⌨️ 键盘与按键](#keyboard)
+- [🖱️ 触摸板与鼠标](#touchpad-mouse)
+- [🔌 连接](#connection)
+- [🖥️ 显示分辨率](#resolution)
+- [🎮 沉浸模式](#immersive)
+- [⚙️ 通用](#general)
 
-The version number at the bottom of the Settings home screen is only for identifying the installed APK version and cannot be changed.
+设置首页底部的版本号只用于确认当前 APK 版本，不能修改。
 
 <a id="keyboard"></a>
-## ⌨️ Keyboard & Keys
+## ⌨️ 键盘与按键
 
 <a id="soft-keyboard"></a>
-### Soft Keyboard Toggle Key
+### 软键盘切换键
 
 <a id="bind-soft-keyboard"></a>
-#### Bind Soft Keyboard Toggle Key
+#### 绑定软键盘切换键
 
-**Bind a key:** tap the button, then press the target hardware key within five seconds. If you do not press a key before the countdown ends, the binding is cleared.
+**绑定按键：** 点击按钮后，在 5 秒内按下目标硬件键。倒计时结束前未按键，绑定会被清除。
 
-**Use the key:** while the Anland desktop has focus, press it to show or hide the Android system soft keyboard. The key is not sent to Linux, so choose one you do not normally need there.
+**使用按键：** Anland 桌面获得焦点时，按下该键可显示或隐藏 Android 系统软键盘。这个按键不会再发送给 Linux，因此建议选一个平时用不到的空闲键。
 
 <a id="raise-desktop"></a>
-#### Raise desktop when soft keyboard opens
+#### 软键盘弹出时抬起桌面
 
-- **On:** the keyboard occupies space at the bottom. The desktop shrinks and moves up, keeping the typing area visible.
-- **Off:** the desktop stays full size, with the keyboard overlaid on top. It may cover content near the bottom.
+- **开启**：软键盘占用底部空间，桌面缩小并上移，输入位置更容易看清。
+- **关闭**：桌面保持原尺寸，键盘叠在画面上方，可能遮住底部内容。
 
 <a id="accessibility"></a>
-### Accessibility Key Interception
+### 无障碍按键拦截
 
-When enabled, Anland uses an Android accessibility service to receive hardware keys that a normal window may not see, such as Fn combinations and F1-F12.
+开启后，Anland 通过 Android 无障碍服务接收普通窗口不易收到的硬件键，例如 Fn 组合键和 F1–F12。
 
-It also converts Esc keys that some tablet keyboards report as Back or Browser Back into a Linux Esc.
+它也会把部分平板键盘上报为“返回”或“浏览器后退”的 Esc 键转换为 Linux 的 Esc。
 
-**When to use it:** try this option if function keys, Esc, or key combinations from an external keyboard do not reach the Linux desktop correctly.
+**适用场景：** 外接键盘的功能键、Esc 或组合键没有正确传到 Linux 桌面时，可尝试开启。
 
-**First use:** enable the `Anland KeyInterceptor` service under Android **Settings > Accessibility**. If the option has no effect, check this permission first.
+**首次使用：** 在 Android“设置 → 无障碍”中启用 `Anland KeyInterceptor` 服务。若开关开启后仍无效，请先检查这项授权。
 
-**Scope:** the service intercepts keys only while the Anland desktop window is in the foreground and has focus. It does not take over keys in other apps.
+**生效范围：** 只在 Anland 桌面窗口位于前台且有焦点时拦截按键，不会接管其他应用中的按键。
 
 <a id="hud"></a>
-### Floating HUD controls
+### 浮动 HUD 控件
 
-The HUD provides configurable touch controls over the Linux desktop for shortcuts, mouse operations, and game controls. The former custom extra keys bar has been removed; HUD buttons can replace it. See the [HUD Controls User Guide](hud_guide.md) for each button and gesture.
+HUD 是叠在 Linux 桌面上的可配置触控控件，可用于快捷键、鼠标操作和游戏控制。原来的自定义扩展按键栏已移除，可使用 HUD 按键替代。各按钮和手势详见 [HUD 浮动控件使用手册](hud_guide.md)。
 
-1. Open **Settings → Keyboard & Keys**, enable **Show floating HUD controls**, and tap **Edit floating control layout**. Opening the editor also enables the switch.
-2. The editor opens on a separate black canvas. Tap **ADD** to choose a control, drag it into position, and tap it to open its properties. Available properties depend on the control and include size, opacity, color, and actions; the panel also offers duplicate, delete, and position adjustments.
-3. Controls snap into alignment while dragging. Use **LAYOUT** to switch among three custom layouts, apply a preset, copy the other orientation's regular HUD layout, or clear the active layout. Presets and clearing replace the current layout, so check before applying them.
-4. Tap **SAVE** to save the layout. If there are unsaved layout changes when you tap **EXIT** or Back, choose to save and exit, discard, or cancel.
+1. 打开 **设置 → 键盘与按键**，开启 **显示浮动 HUD 控件**，然后点击 **编辑浮动控件布局**。进入编辑器也会自动开启该开关。
+2. 编辑器在独立的黑色画布上打开。点击 **添加** 选择控件，拖动控件调整位置，点击控件打开属性面板。属性因控件类型而异，可调整尺寸、透明度、颜色、动作等；面板也提供复制、删除和位置微调。
+3. 拖动控件时自动吸附对齐；点击 **布局** 可切换三个自定义布局，也可应用预设、从另一屏幕方向复制普通 HUD 布局或清空当前布局。预设和清空会替换当前布局，操作前请确认。
+4. 点击 **保存** 保存布局。点击 **退出** 或返回时，如有未保存的布局更改，可选择保存并退出、放弃或取消。
 
-Portrait and landscape layouts are saved separately. Rotate the device to edit each orientation, or use **LAYOUT** to copy from the other orientation. The HUD and keyboard layers also have separate layouts; check each orientation and layer.
+竖屏和横屏布局分别保存：旋转设备后可编辑该方向的布局，也可通过 **布局** 复制另一方向的布局。HUD 层和键盘层也分别保存，切换方向或图层后请检查各自的布局。
 
-#### Add and configure controls
+#### 添加与配置控件
 
-- **Standard Key Button:** assign a key, modifier, system action, or a combination of up to three keys. Configure a main action and a swipe-up popup action; enable **Repeat while held** when needed.
-- **Super Gesture Nub:** assign actions to different swipe directions.
-- **TrackPoint, trackpad, scroll bar, and D-pad:** control the pointer, scrolling, or direction; options depend on the control.
-- **Group container:** arrange several keys together and move them as a group. Add keys in its properties, choose **Move existing key in**, or drag a standalone key into it. Child keys can be detached or deleted in the properties panel.
+- **标准按键**：可分配普通键、修饰键、系统动作或最多三个键的组合键。可设置主动作和上滑弹出动作；按需开启 **按住时连续发送**。
+- **Super 手势区域**：可为不同滑动方向配置动作。
+- **TrackPoint、触摸板、滚动条、方向键**：用于指针、滚动或方向控制；可用选项依类型而异。
+- **聚合容器**：将多个按键集中排列并一起移动。在容器属性中添加按键，或选择 **移入已有按键**；也可将独立按键拖入容器。子按键可在属性面板中移出或删除。
 
-On the desktop, tap or operate a control to send its configured action. Swipe up on a button with a popup action to trigger it. Tap a **KB** key assigned to the virtual keyboard to toggle the keyboard; hold it to hide the HUD and hold it again to restore it. The hidden state is remembered.
+在桌面中轻点或操作控件即可发送其配置的动作；有上滑弹出动作的按键可向上滑动触发。带虚拟键盘动作的 **KB** 键可轻点切换键盘，长按隐藏 HUD，再次长按 KB 可恢复；隐藏状态会被记住。
 
-#### Keyboard layer
+#### 键盘层
 
-In the editor, tap **Edit keyboard** to adjust the floating virtual keyboard and its dedicated HUD keyboard layer. This layer starts empty and accepts the same controls as the regular HUD. It is used while the virtual keyboard is visible; hiding the keyboard restores the regular HUD layer. Tap **Back to HUD** to return to the regular layer in the editor.
+在编辑器中点击 **编辑键盘**，可调整浮动虚拟键盘及其专用的 HUD 键盘层；该层默认空白，可像普通 HUD 一样添加控件。键盘显示时使用键盘层，隐藏后返回普通 HUD 层。点击 **返回 HUD** 切回普通层。
 
-Tap **Keyboard settings** on the keyboard layer to configure landscape split mode, handedness, appearance, and wing keys. In landscape split mode, drag the blank area near each half separately in the editor; its position is saved. Tap **HIDE** during use to dismiss the keyboard. The portrait floating keyboard can be moved using its drag handle.
+在键盘层点击 **键盘设置**，可设置横屏分体、左右手布局、外观和翼键。横屏分体键盘的左右两部分可在编辑器中通过附近空白区域分别拖动，位置会保存；使用时可点击 **HIDE** 收起键盘。竖屏浮动键盘可通过拖动手柄移动。
 
-#### Export, import, and immersive mode
+#### 导出、导入与沉浸模式
 
-Under **Settings → Keyboard & Keys**, choose **Export HUD layout…**, select one layout, and save the JSON file. It includes portrait, landscape, and keyboard layers for that layout. For **Import HUD layout…**, select a file and one destination layout to replace; other layouts are preserved. For an older full-profile backup, first choose the source layout in the backup. Import enables HUD controls.
+在 **设置 → 键盘与按键** 中选择 **导出 HUD 布局…**，选一个布局并保存 JSON；文件包含该布局的横竖屏及键盘层。选择 **导入 HUD 布局…** 并选择文件，再选一个目标布局进行覆盖，其他布局不受影响。旧版完整备份会先要求选择备份中的来源布局。导入会开启 HUD。
 
-Under **Settings → Immersive Mode → Immersive Input**, **Touch HUD controls in immersive mode** is enabled by default. When disabled, touches go directly to the desktop while the touchscreen is grabbed and the HUD is display-only. If the HUD is missing or unresponsive, check the display switch, KB hidden state, current orientation and layer, and this immersive-mode option.
+在 **设置 → 沉浸模式 → 沉浸输入** 中，**沉浸模式下可触摸 HUD 控件** 默认开启。关闭后，独占触摸屏期间触摸直接交给桌面，HUD 显示但不响应。若看不到或无法操作 HUD，请检查显示开关、KB 隐藏状态、当前方向和图层，以及此沉浸模式选项。
 
 <a id="immersive"></a>
-## 🎮 Immersive Mode
+## 🎮 沉浸模式
 
 <a id="enable-immersive"></a>
-### Enable Immersive Mode
+### 启用沉浸模式
 
-This is the master switch for immersive mode. There are two ways to enter:
+这是沉浸模式的总开关。进入方式有两种：
 
-- **Manual toggle:** bind the key below, then press it once in the Anland desktop to enter.
-- **Automatic entry:** select **Gold keyboard directly to desktop** and enable **Automatically enter immersive mode**. Anland enters when it returns to the foreground.
+- **手动切换：** 先绑定下方的切换按键，再在 Anland 桌面中按一次进入。
+- **自动进入：** 选择“Gold 键盘直连桌面”并开启“自动进入沉浸模式”后，Anland 回到前台时会自动进入。
 
-While active, the selected input source is sent to the Linux desktop, reducing Android's interception of those input events. This is useful for games, full-screen applications, and other cases that need complete keyboard and mouse behavior.
+进入后，沉浸输入页选择的输入来源会交给 Linux 桌面，减少 Android 对输入的拦截。Anland 可以接管 Android 输入设备、转发 Gold 重映射键盘，或组合使用两者，适合游戏、全屏应用和需要完整键鼠行为的场景。
 
-- **Input sources:** Anland can take selected Android input devices, forward Gold's remapped keyboard, or combine the two.
+沉浸模式需要可用的 root 权限和至少一种可用的输入来源。切换应用、窗口失焦、锁屏或熄屏时，Anland 会自动退出并把输入还给 Android。
 
-- **Requirements and exit behavior:** working root access and at least one usable input source are required. Anland exits automatically and returns input to Android when you switch apps, the window loses focus, or the screen is locked or turned off.
-
-- **How input is handled:** for a direct device source, the root helper takes exclusive control of selected devices and forwards their raw events. For a Gold source, Anland reads Gold's remapped keyboard output. Immersive mode does more than hide the Android system bars.
+使用直连接管时，root 辅助程序会独占所选设备并转发原始输入事件；使用 Gold 来源时，Anland 会读取 Gold 的重映射键盘输出。因此，沉浸模式不只是隐藏 Android 系统栏。
 
 <a id="bind-immersive"></a>
-### Bind Immersive Mode Key
+### 绑定沉浸模式按键
 
-To enter and leave manually, bind a dedicated physical key: press it once in the desktop to enter, then press it again to exit.
+如需手动进入和退出，请绑定一个专用物理键：在桌面中按一次进入，再按同一键退出。
 
-Use a volume key or another hardware key that reports a scan code; avoid Android on-screen navigation gestures. Gold keyboard auto-entry does not need a bound key.
+建议使用音量键或其他会报告扫描码的硬件键，避免使用 Android 屏幕导航手势。使用 Gold 键盘自动进入时，可以不绑定按键。
 
-If the status says the key reports no scan code, bind a different physical key. Android does not receive normal key events in immersive mode, so the helper recognizes the toggle by its raw scan code.
+若状态提示“该按键不上报扫描码”，请换一个物理键。沉浸模式下 Android 收不到普通按键事件，辅助程序需要通过原始扫描码识别切换键。
 
 <a id="oplus-refresh-rate"></a>
-### Keep OnePlus refresh rate fixed
+### 固定 OnePlus 高刷新率
 
-This option is off by default and works only on some OnePlus devices.
+此选项默认关闭，仅对部分 OnePlus 设备有效。
 
-When enabled, Anland asks the system to stop the low-refresh-rate policy triggered by a lack of input events during immersive input. Try it if the refresh rate drops during immersive mode; ignore it on other devices.
+开启后，Anland 会在沉浸输入期间请求停用因缺少输入事件而触发的低刷新率策略。若沉浸时刷新率下降，可尝试开启；其他设备可忽略。
 
 <a id="immersive-input"></a>
-### Immersive input
+### 沉浸输入
 
-Choose the input source for immersive mode here. Every source requires working root access.
+在此页选择沉浸模式的输入来源。所有来源都需要可用的 root 权限。
 
-Sources that use Gold also require the Gold Keyboard Remaps module to be installed and running. Those choices are disabled when the module is unavailable.
+依赖 Gold 键盘的来源还要求 Gold Keyboard Remaps 模块已安装并运行。模块不可用时，对应选项会置灰。
 
 <a id="immersive-input-source"></a>
-#### Input source
+#### 输入来源
 
-- **Anland takes the devices (direct):** Anland takes the selected Android input devices and forwards their events to Linux. Android cannot use them while they are taken.
+- **Anland 接管设备（直连）：** Anland 直接接管所选的 Android 输入设备，并把事件转发给 Linux 桌面。接管期间 Android 无法使用这些设备。
 
-- **Gold keyboard directly to desktop:** sends Gold Keyboard Remaps' keyboard input to the desktop. Touch, mouse, and Android gestures remain available.
+- **Gold 键盘直连桌面：** 把 Gold Keyboard Remaps 重映射后的键盘输入直接送到桌面；触摸、鼠标和 Android 手势仍可照常使用。
 
-- **Direct touch and pointers + Gold keyboard:** Anland takes the touchscreen and pointer devices; Gold's remapped keyboard input goes to the desktop.
+- **触摸、指针直连 + Gold 键盘：** Anland 直接接管触摸屏和指针设备，同时把 Gold 重映射后的键盘输入送到桌面。
 
 <a id="immersive-device-selection"></a>
-#### Device selection
+#### 设备选择
 
-When the selected source requires Anland to take input devices, turn on **Choose devices automatically** to let the app select usable devices. Turn it off to choose event nodes individually.
+当输入来源需要 Anland 接管设备时，可开启“自动选择设备”，由应用选择可用设备；关闭后可逐个勾选要接管的 event 节点。
 
-Devices held by Gold cannot be selected. Power-button devices stay with Android so you retain power-button control.
+Gold 已占用的设备不可选。电源键相关设备会留给 Android，以便继续使用电源键。
 
 <a id="immersive-auto-enter"></a>
-#### Automatically enter immersive mode
+#### 自动进入沉浸模式
 
-This option appears with **Gold keyboard directly to desktop**.
+选择“Gold 键盘直连桌面”时会显示此选项。开启后，Anland 回到前台时会自动把 Gold 键盘交给桌面；触摸输入和 Android 手势仍可使用。
 
-When enabled, the Gold keyboard is sent to the desktop automatically when Anland returns to the foreground. Touch input and Android gestures remain available.
-
-The immersive mode master switch must still be enabled, and the Gold Keyboard Remaps module must be available.
+此功能仍要求开启沉浸模式总开关，并确保 Gold Keyboard Remaps 模块可用。
 
 <a id="touchpad-mouse"></a>
-## 🖱️ Touchpad & Mouse
+## 🖱️ 触摸板与鼠标
 
 <a id="touchpad-mode"></a>
-### Touchpad Mode (relative movement)
+### 触摸板模式（相对移动）
 
-- **On:** sliding a finger moves the pointer like a laptop touchpad. Use one finger to move, tap for left click, two fingers to scroll or tap for right click, and long-press before moving to drag.
+- **开启：** 屏幕滑动像笔记本触摸板一样移动光标。单指移动，轻点左键，双指滚动或轻点右键，长按后移动可拖拽。
 
-- **Off:** screen touches go to Linux as absolute-position multitouch input. Use this for touch-optimized apps, drawing, or direct positioning.
+- **关闭：** 屏幕触摸按绝对坐标发送给 Linux，适合触摸优化应用、绘图和直接点按。
 
 <a id="pointer-capture"></a>
-### Capture external pointer
+### 捕获外接指针
 
-When enabled, an external mouse or physical touchpad uses relative movement and stays locked to the Anland desktop. Reaching a screen edge will not reveal the Android system bars.
+开启后，外接鼠标和物理触摸板会锁定在 Anland 桌面内并使用相对移动。移到屏幕边缘也不会唤出 Android 系统栏。
 
-This is useful for games and continuous pointer movement. Press Android Back to release capture, then click the desktop to capture again. Screen touch is unaffected.
+此模式适合桌面游戏和需要连续移动指针的场景。按 Android 返回键可临时释放捕获；点击桌面画面即可重新捕获，屏幕触摸不受影响。
 
-Linux apps can still request pointer lock temporarily when this option is off. Normal behavior resumes when the app releases the lock.
+即使关闭此项，Linux 应用仍可在需要时临时请求指针锁定；应用释放后会自动恢复。
 
 <a id="right-click-zone"></a>
-### Right-side press = right click
+### 按触摸板右侧为右键
 
-Most single-button laptop touchpads report every physical press as a left click, so Anland can split the pad surface: a press on the right half becomes a right click.
+多数单键笔记本触摸板把所有物理按压都上报为左键。Anland 可以把触摸板表面分成左右两半：
 
-- **Off (default):** pressing anywhere on the pad sends a left click. This avoids opening a context menu by accident when clicking near the right edge. Right-click remains available as a two-finger tap.
-- **On:** pressing the right half of a single-button touchpad sends a right click.
+- **关闭（默认）：** 按触摸板任意位置都发送左键，避免在右侧点击时误开右键菜单；右键仍可用双指轻点。
+- **开启：** 按单键触摸板的右半部分发送右键。
 
-This affects captured physical touchpads and touchpads grabbed in immersive mode. The on-screen touchpad and devices with dedicated buttons are unaffected.
+此设置影响被捕获的物理触摸板和沉浸模式下接管的触摸板；屏幕触摸板以及带独立按键的设备不受影响。
 
 <a id="mouse-pointer-sensitivity"></a>
-### Mouse Pointer Sensitivity (Acceleration)
+### 鼠标指针灵敏度（加速度）
 
-The range is 0.5x to 10x. Higher values move the pointer farther during fast movement; lower values help with precise positioning.
+范围为 0.5 到 10 倍。数值越高，快速移动时光标走得越远；较低值更适合精细定位。
 
-This affects a captured external mouse and mice taken over in relative mode in immersive mode. It does not affect touchpads (on-screen or physical) or absolute touch.
+此设置影响被捕获的外接鼠标，以及沉浸模式下以相对模式接管的鼠标；不影响触摸板（包括屏上触摸板和物理触摸板）或绝对触摸。
 
-Acceleration varies with movement speed: slow adjustments stay controlled, while fast movement accelerates more.
+它采用速度相关的加速度：慢速微调更稳定，快速移动加速更明显。
 
 <a id="pointer-sensitivity"></a>
-### Touchpad Pointer Sensitivity (Acceleration)
+### 触摸板指针灵敏度（加速度）
 
-The range is 0.5x to 10x. Higher values move the pointer farther during fast movement; lower values help with precise positioning.
+范围为 0.5 到 10 倍。数值越高，快速移动时光标走得越远；较低值更适合精细定位。
 
-This affects the on-screen touchpad, captured physical touchpads, and touchpads taken over in immersive mode. It does not affect external mice (use Mouse Pointer Sensitivity above) or absolute touch.
+此设置影响屏上触摸板、被捕获的物理触摸板和沉浸模式下接管的触摸板；不影响外接鼠标（使用上方的“鼠标指针灵敏度”）或绝对触摸。
 
-Acceleration varies with movement speed: slow adjustments stay controlled, while fast movement accelerates more.
+它采用速度相关的加速度：慢速微调更稳定，快速移动加速更明显。
 
 <a id="reverse-scroll"></a>
-### Reverse scroll direction
+### 反向滚动
 
-When enabled, scrolling is "natural": pushing your fingers up moves the content up. When disabled, it follows the traditional mouse-wheel direction.
+开启后使用“自然滚动”：手指向上推，内容也向上移动。关闭后使用传统滚轮方向。
 
-This applies to both the on-screen and captured physical touchpads.
+此设置同时影响屏上触摸板和被捕获的物理触摸板。
 
 <a id="disable-multifinger"></a>
-### Disable pinch and multi-finger gestures
+### 禁用双指开合与多指手势
 
-- **On:** ignore pinch/spread and gestures with three or more fingers. Two-finger scrolling and two-finger tap for right click continue to work.
+- **开启：** 忽略双指捏合/张开和三指以上手势；双指滚动、双指轻点右键仍可用。
 
-  Use this if Linux mistakes gestures for zoom or window switching.
+  适合桌面或应用误把多指输入识别为缩放、切换手势时使用。
 
-- **Off:** forward multi-finger gestures other than scrolling to Linux as multitouch input.
+- **关闭：** 将非滚动的多指手势作为多点触摸发送给 Linux。
 
 <a id="scroll-speed"></a>
-### Two-finger scroll speed
+### 双指滚动速度
 
-Controls how much scrolling two-finger movement produces. Raise the value if scrolling feels too slow; lower it if it feels too fast.
+控制双指移动对应的滚动量。数值越高，同样的手指移动滚动越多；滚动太快或太慢时再调整。
 
 <a id="scroll-threshold"></a>
-### Scroll detection threshold
+### 滚动判定阈值
 
-Controls how far two fingers must travel before scrolling starts. Lower it if pinches are mistaken for scrolling; raise it if slight jitter triggers scrolling.
+决定双指移动多远后才开始滚动。捏合经常被误判为滚动时可调低；轻微抖动就触发滚动时可调高。
 
 <a id="gesture-threshold"></a>
-### Gesture commit threshold
+### 手势定性阈值
 
-Controls when Anland classifies an ambiguous two-finger movement as scrolling or another gesture. Lower it if scrolling starts too late; raise it if gestures are often misclassified.
+决定 Anland 何时把双指动作判定为滚动或其他手势。滚动触发太迟时可调低；误判较多时可调高。
 
 <a id="gesture-scale"></a>
-### Gesture magnitude
+### 手势幅度
 
-When multi-finger gestures are enabled, Anland forwards pinch/spread and three-or-more-finger gestures as Linux multitouch input. They map to a square centered on the pointer.
+启用多指手势转发时，Anland 会把双指开合和三指以上动作作为 Linux 多点触摸发送，并映射到以鼠标光标为中心的正方形区域。
 
-This setting controls the square's side length. A larger value makes the same finger movement travel farther in Linux.
+此项设置映射区域的边长。数值越大，同样的手指移动在 Linux 中产生的位移越大。
 
-It does not affect one-finger pointer movement or two-finger scrolling.
+此设置不影响单指光标移动或双指滚动。
 
 <a id="connection"></a>
-## 🔌 Connection
+## 🔌 连接
 
 <a id="socket-path"></a>
-### Daemon socket path
+### 守护进程套接字路径
 
-This is the Unix domain socket path the Android app uses to connect to the display daemon. The default is:
+这是 Android 应用连接显示守护进程所用的 Unix 域套接字路径。默认值为：
 
 ```text
 /data/local/tmp/display_daemon.sock
 ```
 
-You normally do not need to change it. Enter another path only if the desktop startup script uses a different location or you run multiple independent daemons.
+通常保持默认值即可。仅在桌面启动脚本使用其他路径，或设备上运行多个独立 daemon 时修改。
 
-This is a local filesystem path, not an IP address or network URL.
+这是本机文件路径，不是 IP 地址或网络 URL。
 
-If the path is wrong, the daemon is not running, or the target is not a Unix socket, Anland cannot open the desktop. On first launch, the app may open Settings directly so you can correct the path.
+路径错误、守护进程未启动，或目标不是 Unix 套接字时，Anland 无法打开桌面；首次启动时应用可能直接进入设置页，供你修正路径。
 
 <a id="second-window"></a>
-### Open a second window (own daemon & title)
+### 打开第二个窗口（独立守护进程与标题）
 
-Use this section to start another Anland window, for example in Android freeform or split-screen mode, or to view two independent Linux desktop sessions at the same time.
+此区域可启动一个新的 Anland 窗口，适用于 Android 自由窗口、分屏或同时查看两个独立 Linux 桌面会话。
 
-- **Window name** is used only as the Android window title in Recents or freeform mode, for example `work`. It does not create or rename a Linux daemon.
+- **窗口名称：** 只用于该 Android 窗口在最近任务/自由窗口中的标题，例如 `work`；不会创建或重命名 Linux 守护进程。
 
-- **Socket path** selects the daemon for the new window. To get a truly independent second desktop, enter the socket of another running daemon.
+- **套接字路径：** 新窗口要连接的守护进程。要获得真正独立的第二个桌面，应填写另一个正在运行的守护进程套接字。
 
-- **Open second window** launches it with the values currently entered. The name and socket apply only to this launch and do not replace the main window's saved connection path.
+- **打开第二个窗口：** 按当前填写内容启动。这里的名称和套接字只用于这次启动，不会替换主窗口保存的连接路径。
 
-If the selected socket is already open, Anland switches to the existing window instead of connecting to the same daemon twice.
+如果指定的套接字已在其他 Anland 窗口中打开，应用会转到该窗口，不会重复连接同一 daemon。
 
-If the path does not exist, the new window reports the failure and closes.
+如果路径不存在，新窗口会提示失败并关闭。
 
 <a id="root-connection"></a>
-### Connect with root (helper)
+### 使用 root 连接（辅助程序）
 
-- **On:** Anland uses `su` to launch a root helper, which connects to the daemon and passes the connection back to the app.
+开启后，Anland 通过 `su` 启动 root 辅助程序。辅助程序连接 daemon，再把连接交回应用。
 
-- **Use it when:** the socket is in a location a normal app cannot access, such as a root-owned directory. Grant permission in your root manager.
+- **建议开启：** 套接字位于普通应用无权访问的位置时，例如某些 root 所有的目录。还需在 root 管理器中授权。
 
-- **Off:** Anland can connect only to sockets the app itself has permission to access.
+- **关闭时：** Anland 只能访问当前应用本身有权限连接的套接字。
 
-This does not change the permissions of the Linux desktop itself. Root is used only for the restricted Android-side connection. Changes take effect on the next connection.
+这不会改变 Linux 桌面本身的权限；root 只用于完成 Android 侧的受限连接。修改后在下次连接时生效。
 
 <a id="foreground-scheduling"></a>
-### Enable foreground scheduling (root)
+### 启用前台调度（root）
 
-When enabled, Anland puts related Linux desktop processes in Android's foreground scheduling group to raise their CPU priority. Try it if the desktop stutters under system load.
+开启后，Anland 会把相关 Linux 桌面进程放入 Android 的前台调度组，提高 CPU 调度优先级。桌面在系统繁忙时卡顿，可尝试此项。
 
-This feature requires working `su` and increases power use. It adjusts CPU scheduling; it cannot fix issues caused by the GPU, network, or an application itself.
+此功能需要可用的 `su`，并会增加耗电。它只调整 CPU 调度，不能解决 GPU、网络或应用本身造成的卡顿。
 
-Leave it off if the desktop is already smooth. Anland restores the normal scheduling scope when the connection ends.
+桌面流畅时建议保持关闭。连接结束后，Anland 会恢复原来的调度范围。
 
 > [!IMPORTANT]
 >
-> `CONFIG_UNIX_DIAG` locates the process at the other end of the Unix domain socket. `CONFIG_PROC_CHILDREN` lets Anland walk the desktop session's process tree.
+> `CONFIG_UNIX_DIAG` 用于定位 Unix 域套接字对端进程；`CONFIG_PROC_CHILDREN` 用于遍历桌面会话的进程树。
 >
-> Without either option, foreground scheduling may not handle the target processes correctly. The basic display connection is unaffected.
+> 缺少任一选项时，前台调度可能无法正确处理目标进程；基本显示连接不受影响。
 
 <a id="foreground-scope"></a>
-#### Foreground scheduling scope
+#### 前台调度范围
 
-- **1 - Focused application:** raises the compositor and the Linux application in use. When focus changes, the previous application returns to normal priority. This is suitable for everyday use and has a smaller impact.
+- **`1 - 当前焦点应用`：** 提升合成器和当前正在操作的 Linux 应用。焦点切换后，前一个应用恢复普通优先级。适合日常使用，对其他任务影响较小。
 
-- **2 - Whole desktop session:** raises the entire Anland Linux process tree, including background applications and services, for the duration of the connection. This prioritizes performance but uses more power and affects other system tasks more.
+- **`2 - 整个桌面会话`：** 连接期间提升整个 Anland Linux 进程树，包括后台应用和服务。性能优先，但耗电更多，对系统其他任务影响也更大。
 
 <a id="scan-stop-processes"></a>
-#### Scan stop process names (optional)
+#### 扫描结束进程名（可选）
 
-This advanced option is for nonstandard container or session structures. It does **not** stop processes.
+这是供非标准容器或会话结构使用的高级选项。它**不会结束进程**，而是告诉 root 辅助程序向上查找父进程时，遇到哪些名称就停止，以此确定调度范围。
 
-The names tell the root helper where to stop while walking up the Linux desktop's parent processes, so it can find the session boundary.
+多个名称用英文冒号分隔，例如 `systemd:init`。
 
-Separate names with colons, for example `systemd:init`.
-
-Leave the field empty to use the built-in list. A custom value replaces that list. Most users should leave it empty; incorrect names can make the boosted scope too broad, too narrow, or ineffective.
+留空会使用内置列表；填写后会替换内置列表。一般用户留空即可，错误的名称可能导致调度范围过大、过小或失效。
 
 <a id="microphone"></a>
-### Forward microphone to desktop
+### 将麦克风转发到桌面
 
-When enabled, the Android microphone becomes a recording input for the Linux desktop, for meetings, recording, and voice chat. Android requests microphone permission the first time you enable it.
+开启后，Android 麦克风会作为 Linux 桌面的录音输入，可用于会议、录音和语音聊天。首次启用时需授予 Android 麦克风权限。
 
-Turning this off stops only the phone-to-Linux microphone path. Desktop audio will still play through the phone or tablet. Leave it off when you are not recording to limit access and save power.
+关闭此项只会停止“手机麦克风 → Linux”传输，不影响桌面声音从手机或平板播放。
+
+不需要录音时可以关闭，以减少权限使用和耗电。
 
 <a id="camera"></a>
-### Forward camera to desktop
+### 将摄像头转发到桌面
 
-When enabled, the Linux desktop can use the Android cameras as video sources. Android requests camera permission the first time you enable it.
+开启后，Linux 桌面可把 Android 设备摄像头作为视频源使用。首次启用时会请求 Android 相机权限。
 
-A camera opens only while a Linux application requests a video stream.
+只有 Linux 应用请求视频流时，摄像头才会实际打开。
 
-If multiple Anland windows request the same camera, Android opens one capture stream and shares it with those windows.
+如果多个 Anland 窗口同时请求同一个摄像头，Android 只开启一条实际采集通路，并把同一画面提供给这些正在使用的窗口。
 
 <a id="audio-keepalive"></a>
-### Audio keep-alive
+### 音频保活
 
-- **On:** keep the phone's audio output active so short Linux sounds, such as volume ticks and key clicks, play immediately. This uses slightly more standby power.
-- **Off:** after about 1.5 seconds of desktop silence, the audio path sleeps to save power. It wakes for the next sound, but short sounds may have a slight start delay.
+- **开启**：保持手机端音频通路活跃，让音量提示、按键音等短音更快播放；待机功耗略高。
+- **关闭**：桌面静默约 1.5 秒后通路休眠以省电；下次播放会自动唤醒，短音可能有轻微起音延迟。
 
 <a id="audio-latency"></a>
-### Audio latency
+### 音频延迟
 
-The speaker and microphone have separate target-buffer settings:
+扬声器和麦克风分别有独立的目标缓冲设置：
 
-| Option | Audio direction | Affects |
+| 项目 | 音频方向 | 适用场景 |
 | --- | --- | --- |
-| **Speaker (desktop → phone)** | Linux desktop to Android speaker/headphones | Playback latency for games, video, and system sounds |
-| **Microphone (phone → desktop)** | Android microphone to Linux desktop | Input latency for calls, recording, and voice chat |
+| 扬声器（桌面 → 手机） | Linux 桌面播放到 Android 扬声器/耳机 | 游戏、视频、系统声音的播放延迟 |
+| 麦克风（手机 → 桌面） | Android 麦克风发送到 Linux 桌面 | 通话、录音和语音聊天的输入延迟 |
 
-Presets are **Auto (engine default)** and approximately 1, 3, 5, 10, or 20 milliseconds.
+预设包括“自动（引擎默认）”以及约 1、3、5、10、20 毫秒。
 
-Smaller buffers usually reduce latency but can crackle or drop audio when the device is busy. Larger buffers are more stable. These are buffer targets, not guaranteed end-to-end latency.
+较小的缓冲通常延迟更低，但设备繁忙时更容易爆音、产生杂音或丢帧；较大的缓冲更稳定。这些数值是缓冲目标，不代表端到端延迟。
 
 <a id="resolution"></a>
-## 🖥️ Display Resolution
+## 🖥️ 显示分辨率
 
 <a id="resolution-values"></a>
-### Presets, width, and height
+### 预设、宽度和高度
 
-This page sets the Linux desktop's logical output resolution; it does not change the Android panel's physical resolution.
+此页设置 Linux 桌面的逻辑输出分辨率，不会改变 Android 面板的物理分辨率。
 
-Lower resolutions usually reduce rendering, memory, and bandwidth load. Higher resolutions show more detail and desktop space at a higher cost.
+低分辨率通常更省渲染、显存和带宽；高分辨率能显示更多内容，但开销更大。
 
-- **Presets:** Auto (`0×0`), 4K, 2K, 1080p, 720p, 480p, and **Screen × 1.0 / 0.8 / 0.75 / 0.5 / 0.25**. Choosing a preset fills in the width and height. **Preset…** itself does not change the values.
+- **预设：** 自动（`0×0`）、4K、2K、1080p、720p、480p，以及“屏幕 × 1.0 / 0.8 / 0.75 / 0.5 / 0.25”。选择具体预设会填入宽度和高度；“预设…”本身不会更改数值。
 
-- **Screen ×:** calculates concrete pixel dimensions from the panel's long and short sides in landscape. It is not a scale factor that follows later screen changes.
+- **屏幕 ×：** 按当前面板横向时的长短边计算一组像素尺寸并填入宽、高。它不是持续生效的缩放比例。
 
-- **Custom:** enter two positive integers. Use `0×0` to return to the Anland view's automatic native size.
+- **自定义：** 直接填写两个正整数。恢复自动原生尺寸时填写 `0×0`。
 
-The resolution is sent to Linux on the next connection.
+分辨率在下一次连接时发送给 Linux 桌面。
 
 <a id="auto-stretch"></a>
-### Auto-stretch display
+### 自动拉伸显示
 
-- **On:** fill the Anland window. The image may stretch if the aspect ratios differ.
+- **开启：** 画面填满 Anland 窗口；宽高比不同时可能被拉伸。
 
-- **Off:** preserve the image's aspect ratio and center it with black bars. Anland maps touch and mouse coordinates automatically.
+- **关闭：** 保持原始宽高比并居中显示，空出的区域显示黑边。Anland 会自动换算触摸和鼠标坐标。
 
-Black bars normally do not appear with automatic native resolution.
+使用自动原生分辨率时通常不会出现黑边。
 
 <a id="general"></a>
-## ⚙️ General
+## ⚙️ 通用
 
 <a id="orientation"></a>
-### Screen Orientation
+### 屏幕方向
 
 <a id="force-orientation"></a>
-#### Force screen orientation
+#### 强制屏幕方向
 
-- **Default (system)** lets Android auto-rotation and system settings decide.
+- **默认（跟随系统）：** 交给 Android 的自动旋转和系统设置决定。
 
-- **Force landscape** keeps Anland in landscape; rotating the device can still switch between the two landscape orientations.
+- **强制横屏：** Anland 只使用横屏方向；设备翻转时仍可在两个横屏方向之间旋转。
 
-- **Force portrait** keeps Anland in portrait; rotating the device can still switch between the two portrait orientations.
+- **强制竖屏：** Anland 只使用竖屏方向；设备翻转时仍可在两个竖屏方向之间旋转。
 
-This controls the orientation of the Anland Android window; it does not change the resolution configured inside the Linux desktop. Exit and reopen Anland after changing it.
+该设置控制的是 Anland Android 窗口的方向，不会改变 Linux 桌面内部的分辨率设置。修改后请退出并重新打开 Anland。
 
 <a id="notification"></a>
-### Settings Notification
+### 设置通知
 
 <a id="show-notification"></a>
-#### Show settings notification
+#### 显示设置通知
 
-When enabled, a persistent **Anland — Tap to open Settings** notification appears while the desktop window is in the foreground. Tap it to open Settings. Turning this off hides the notification.
+开启后，Anland 桌面窗口在前台时会显示常驻通知“Anland — 点击进入设置”。点击通知即可打开设置；关闭后不显示。
 
-Android 13 and later also require notification permission. The notification will not appear if its system channel has been disabled.
+Android 13 及更高版本还需要通知权限。若系统通知渠道被关闭，通知也不会显示。
 
-This notification is only a Settings shortcut. It does not keep the daemon or Linux desktop running in the background, and Anland removes it when you leave the app.
+此通知只是设置入口，不会让 daemon 或 Linux 桌面保持后台运行；离开 Anland 时会移除。
