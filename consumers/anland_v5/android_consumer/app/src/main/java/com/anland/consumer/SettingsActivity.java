@@ -89,7 +89,6 @@ public class SettingsActivity extends Activity {
 
     // ===== 新增：触摸板 Key =====
     private static final String KEY_TOUCHPAD_MODE = "touchpad_mode";
-    // "mouse_speed" is the legacy preference name; it stores the touchpad value.
     private static final String KEY_TOUCHPAD_ACCEL = MainActivity.KEY_TOUCHPAD_ACCEL;
     private static final String KEY_MOUSE_ACCEL = MainActivity.KEY_MOUSE_ACCEL;
     private static final String KEY_POINTER_CAPTURE = "pointer_capture";

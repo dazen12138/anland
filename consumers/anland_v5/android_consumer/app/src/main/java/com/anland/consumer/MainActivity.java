@@ -176,14 +176,10 @@ public class MainActivity extends Activity
 
     // ==================== 触摸板相关设置 ====================
     public static final String KEY_TOUCHPAD_MODE = "touchpad_mode";
-    // Touchpad acceleration. The preference name is the old "mouse_speed" key:
-    // it has always stored the touchpad value, and renaming it would discard
-    // the setting for existing users.
-    public static final String KEY_TOUCHPAD_ACCEL = "mouse_speed";
-    // Mouse acceleration, independent of the touchpads since the two were split.
-    // Absent means "use the touchpad value", so an existing installation keeps
-    // the behaviour it had before the split.
-    public static final String KEY_MOUSE_ACCEL = "mouse_pointer_speed";
+    // The speed of the touchpad
+    public static final String KEY_TOUCHPAD_ACCEL = "touchpad_speed";
+    // The speed of the mouse
+    public static final String KEY_MOUSE_ACCEL = "mouse_speed";
     // Two-finger scroll tuning, shared by the on-screen and captured touchpads.
     public static final String KEY_SCROLL_SPEED = "scroll_speed";
     public static final String KEY_SCROLL_REVERSE = "scroll_reverse";
