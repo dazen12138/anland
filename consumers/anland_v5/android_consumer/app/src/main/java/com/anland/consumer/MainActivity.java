@@ -249,8 +249,13 @@ public class MainActivity extends Activity
     private float capturedTouchpadAccel = 1.0f;
     // Captured relative mice have their own acceleration; see readMouseAccel.
     private float capturedMouseAccel = 1.0f;
+    // Previous captured mouse sample time. Nanoseconds keep high-report-rate
+    // mice from collapsing several samples into the same millisecond.
+    private long lastCapturedMouseSampleTimeNanos = 0L;
     /** Raw mouse speed at which half of the configured acceleration is applied. */
     private static final float RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S = 1000f;
+    /** Pointer speed at which half of the mouse acceleration is applied. */
+    private static final float MOUSE_ACCEL_REFERENCE_PX_PER_S = 1000f;
     private boolean capturedTouchpadBaselineValid = false;
     private int capturedTouchpadBaselinePointers = 0;
     private float capturedTouchpadLastCentroidX = 0f;
@@ -822,6 +827,7 @@ public class MainActivity extends Activity
                 if (!hasCapture) {
                     releaseAllMouseButtons();
                     resetCapturedTouchpadGesture();
+                    lastCapturedMouseSampleTimeNanos = 0L;
                 }
             }
         };
@@ -1453,9 +1459,11 @@ public class MainActivity extends Activity
             // acceleration entirely.
             for (int i = 0; i < event.getHistorySize(); i++) {
                 sendCapturedMouseMotion(event.getHistoricalX(0, i),
-                        event.getHistoricalY(0, i));
+                        event.getHistoricalY(0, i),
+                        event.getHistoricalEventTimeNanos(i));
             }
-            sendCapturedMouseMotion(event.getX(), event.getY());
+            sendCapturedMouseMotion(event.getX(), event.getY(),
+                    event.getEventTimeNanos());
         }
 
         if (action == MotionEvent.ACTION_SCROLL) {
@@ -1705,22 +1713,45 @@ public class MainActivity extends Activity
     }
 
     private void sendCapturedTouchpadMotion(float dx, float dy) {
-        sendCapturedPointerMotion(dx, dy, capturedTouchpadAccel);
+        sendCapturedPointerMotion(dx, dy, capturedTouchpadAccel,
+                (float) Math.hypot(dx, dy) / 10.0f);
     }
 
-    private void sendCapturedMouseMotion(float dx, float dy) {
-        sendCapturedPointerMotion(dx, dy, capturedMouseAccel);
+    /**
+     * Relative mice are measured per sample time, not per event distance: the
+     * same physical speed then gets the same acceleration whether the mouse
+     * reports at 125 Hz or 1000 Hz. Immersive mode uses the same 1000 px/s
+     * reference, so the mouse setting behaves the same in both modes.
+     */
+    private void sendCapturedMouseMotion(float dx, float dy, long eventTimeNanos) {
+        if (dx == 0f && dy == 0f) {
+            lastCapturedMouseSampleTimeNanos = eventTimeNanos;
+            return;
+        }
+        long elapsedNanos = eventTimeNanos - lastCapturedMouseSampleTimeNanos;
+        float speed;
+        if (lastCapturedMouseSampleTimeNanos != 0L
+                && elapsedNanos > 0L && elapsedNanos <= 100_000_000L) {
+            float pixelsPerSecond = (float) Math.hypot(dx, dy)
+                    * 1_000_000_000f / elapsedNanos;
+            speed = pixelsPerSecond / MOUSE_ACCEL_REFERENCE_PX_PER_S;
+        } else {
+            // First sample of a burst, or a clock hiccup: fall back to the old
+            // per-sample estimate instead of inventing an enormous speed.
+            speed = (float) Math.hypot(dx, dy) / 10.0f;
+        }
+        lastCapturedMouseSampleTimeNanos = eventTimeNanos;
+        sendCapturedPointerMotion(dx, dy, capturedMouseAccel, speed);
     }
 
     /**
      * Apply the accelerator for one pointer source and hand the result to the
      * shared cursor. Touchpads pass their own strength, mice theirs.
      */
-    private void sendCapturedPointerMotion(float dx, float dy, float accelStrength) {
+    private void sendCapturedPointerMotion(float dx, float dy, float accelStrength,
+                                           float speed) {
         if (dx == 0f && dy == 0f)
             return;
-        float distance = (float) Math.hypot(dx, dy);
-        float speed = distance / 10.0f;
         float scale = 1.0f + (accelStrength - 1.0f)
                 * (speed / (1.0f + speed));
         scale = Math.max(0.3f, Math.min(10.0f, scale));
@@ -2749,6 +2780,10 @@ public class MainActivity extends Activity
     public Touchpad newGrabbedPad() {
         Touchpad pad = new Touchpad(this, new TouchpadOutput(true), true);
         applyTouchpadPrefs(getSharedPreferences(PREFS_NAME, MODE_PRIVATE), pad);
+        // Pointer capture feeds raw relative axes to the touchpad acceleration
+        // curve with no smoothing. Match that here, or the same pad feels
+        // slower and less direct while immersive mode owns it.
+        pad.setMotionSmoothingEnabled(false);
         pad.setOutputSize(pointerViewWidth(), pointerViewHeight());
         return pad;
     }
@@ -2758,12 +2793,14 @@ public class MainActivity extends Activity
                                     boolean touchpad) {
         if (dx == 0f && dy == 0f)
             return;
-        // The speed comes from the device's timestamps, never main-thread timing.
-        float speed = speedCountsPerSecond / RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S;
+        // A touchpad fallback has no normalised pixels, so use the same
+        // per-sample curve as the captured pad path. A mouse uses the speed the
+        // evdev timestamps measured, matching the captured-mouse reference.
+        float speed = touchpad
+                ? (float) Math.hypot(dx, dy) / 10.0f
+                : speedCountsPerSecond / RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S;
         float accel = touchpad ? capturedTouchpadAccel : capturedMouseAccel;
-        float scale = 1.0f + (accel - 1.0f) * (speed / (1.0f + speed));
-        scale = Math.max(0.3f, Math.min(10.0f, scale));
-        movePointerBy(dx * scale, dy * scale);
+        sendCapturedPointerMotion(dx, dy, accel, speed);
     }
 
     @Override

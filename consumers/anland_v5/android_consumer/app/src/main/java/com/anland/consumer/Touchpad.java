@@ -208,6 +208,9 @@ public final class Touchpad {
     private float gestureScale = DEFAULT_GESTURE_SCALE;
 
     private float mouseAccelStrength = 1.0f; // 加速度强度，0.5 ~ 10.0
+    // The on-screen pad smooths single-finger motion; a physical pad grabbed in
+    // immersive mode disables it so its cursor response matches pointer capture.
+    private boolean motionSmoothingEnabled = true;
 
     // 禁用双指捏合/张开与三指及以上的触摸转发手势（缩放等）。开启后这些
     // 手势被吞掉（不转发为触摸），双指滚动与双指右键点击不受影响。
@@ -285,6 +288,18 @@ public final class Touchpad {
     /** Set the acceleration strength (clamped to 0.5 ~ 10.0). */
     void setAccelStrength(float strength) {
         mouseAccelStrength = Math.max(0.5f, Math.min(10.0f, strength));
+    }
+
+    /**
+     * Enable or disable the single-finger motion smoothing/dead-zone filter.
+     * The on-screen pad keeps it. A grabbed physical pad turns it off so the
+     * same finger movement produces the same cursor delta it does through
+     * Android pointer capture, which has no such filter.
+     */
+    void setMotionSmoothingEnabled(boolean enabled) {
+        motionSmoothingEnabled = enabled;
+        if (!enabled)
+            resetSmoothing();
     }
 
     /** Set the two-finger scroll distance per pixel of travel (0.05 ~ 5.0). */
@@ -737,12 +752,16 @@ public final class Touchpad {
                         isTwoFingerTapCandidate = false;
                     }
 
-                    float[] smoothed = applySmoothing(rawDx, rawDy);
-                    float smoothDx = smoothed[0];
-                    float smoothDy = smoothed[1];
+                    float smoothDx = rawDx;
+                    float smoothDy = rawDy;
+                    if (motionSmoothingEnabled) {
+                        float[] smoothed = applySmoothing(rawDx, rawDy);
+                        smoothDx = smoothed[0];
+                        smoothDy = smoothed[1];
+                    }
 
                     if (smoothDx != 0f || smoothDy != 0f) {
-                        // 计算移动距离（平滑后的欧式距离）
+                        // 计算移动距离（平滑后的欧式距离；物理触摸板关闭平滑时为原始距离）
                         float distance = (float) Math.hypot(smoothDx, smoothDy);
 
                         // 改进的加速度曲线：以 10px 为参考阈值，使小位移也能获得明显加速

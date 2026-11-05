@@ -772,8 +772,15 @@ final class ImmersiveMode implements InputGrabTransport.Listener {
                 // into the next estimate instead of treating them as an idle gap.
                 d.relativePendingDistance += distance;
             }
-            host.movePointerRelative(d.relX, d.relY, d.relativeSpeed,
-                    d.cls == InputGrab.CLASS_TOUCHPAD);
+            // A touchpad with a pad state machine already turns its absolute
+            // contacts into cursor motion (with the touchpad acceleration
+            // setting). Some pads also report REL_X/Y; passing those through as
+            // well would apply acceleration twice and make the same pad fly
+            // while immersive mode owns it. Use the REL path only as a fallback.
+            if (d.cls != InputGrab.CLASS_TOUCHPAD || d.pad == null) {
+                host.movePointerRelative(d.relX, d.relY, d.relativeSpeed,
+                        d.cls == InputGrab.CLASS_TOUCHPAD);
+            }
             d.relX = 0f;
             d.relY = 0f;
         }
