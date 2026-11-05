@@ -352,7 +352,7 @@ public final class Touchpad {
     int clickpadButton(MotionEvent event) {
         // Two-finger click: the press counterpart of the two-finger tap. This is
         // independent of clickpadRightZone, which only splits one-finger presses.
-        if (event.getPointerCount() >= 2) {
+        if (event.getPointerCount() == 2) {
             if (debug)
                 android.util.Log.d("AnlandTouchpad",
                         "clickpad press with " + event.getPointerCount()
