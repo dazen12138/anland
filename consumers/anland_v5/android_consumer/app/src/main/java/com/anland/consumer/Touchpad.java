@@ -44,6 +44,11 @@ public final class Touchpad {
     static final int TOUCH_UP = 1;
     static final int TOUCH_MOVE = 2;
 
+    // the left button code
+    public static final int BTN_LEFT = 0x110;
+    // the right button code
+    public static final int BTN_RIGHT = 0x111;
+
     /** Everything this class produces, and the cursor position it needs back. */
     interface Output {
         void onMotion(float dx, float dy);
@@ -324,7 +329,7 @@ public final class Touchpad {
     void cancel() {
         releaseForwardedTouches();
         if (isDraggingActive)
-            sendButton(0x110, false);
+            sendButton(BTN_LEFT, false);
         resetTouchpadState();
         resetSmoothing();
         lastTapTime = 0L;
@@ -357,11 +362,11 @@ public final class Touchpad {
                 android.util.Log.d("AnlandTouchpad",
                         "clickpad press with " + event.getPointerCount()
                                 + " contacts -> BTN_RIGHT");
-            return 0x111; // BTN_RIGHT
+            return BTN_RIGHT;
         }
 
         if (!clickpadRightZone || !clickpadBaselineValid || event.getPointerCount() <= 0)
-            return 0x110; // BTN_LEFT
+            return BTN_LEFT;
 
         // A press that arrives after a single contact has already been held
         // long enough for long-press drag is intentional drag/left-click, not a
@@ -374,7 +379,7 @@ public final class Touchpad {
             if (debug)
                 android.util.Log.d("AnlandTouchpad",
                         "clickpad press during long hold -> BTN_LEFT");
-            return 0x110;
+            return BTN_LEFT;
         }
 
         int limit = Math.min(event.getPointerCount(), 2);
@@ -395,7 +400,7 @@ public final class Touchpad {
         }
         float curX = toOutputX(event.getX(slowestIndex));
         float mid = outputWidth > 0 ? outputWidth / 2f : curX;
-        return curX < mid ? 0x110 : 0x111; // BTN_LEFT / BTN_RIGHT
+        return curX < mid ? BTN_LEFT : BTN_RIGHT;
     }
 
     /** Map a pad (input-space) coordinate to the output space recognize() uses. */
@@ -524,7 +529,7 @@ public final class Touchpad {
      */
     private boolean declineGesture() {
         if (isDraggingActive)
-            sendButton(0x110, false);
+            sendButton(BTN_LEFT, false);
         isDraggingActive = false;
         isSingleTapCandidate = false;
         isTwoFingerTapCandidate = false;
@@ -668,7 +673,7 @@ public final class Touchpad {
                 isSingleTapCandidate = false;
                 isLongPressPossible = false;
                 if (currentState == STATE_DRAGGING) {
-                    sendButton(0x110, false);
+                    sendButton(BTN_LEFT, false);
                     isDraggingActive = false;
                 }
                 if (pointerCount == 2) {
@@ -715,7 +720,7 @@ public final class Touchpad {
                         isTwoFingerTapCandidate = false;
                         // No motion is emitted with the press: the cursor belongs to
                         // the host and is already where the drag should start.
-                        sendButton(0x110, true);
+                        sendButton(BTN_LEFT, true);
                         if (debug)
                             android.util.Log.d("AnlandTouchpad",
                                     "long-press drag down t=" + event.getEventTime());
@@ -852,7 +857,7 @@ public final class Touchpad {
                 boolean isQuickTap = duration < 300;
 
                 if (isDraggingActive) {
-                    sendButton(0x110, false);
+                    sendButton(BTN_LEFT, false);
                     isDraggingActive = false;
                     resetTouchpadState();
                     resetSmoothing();
@@ -875,15 +880,15 @@ public final class Touchpad {
                     if (synthesizeDoubleTap && gap < 300 && dist < touchSlop
                             && !isDoubleTapPending) {
                         isDoubleTapPending = true;
-                        sendButton(0x110, true);
-                        sendButton(0x110, false);
-                        sendButton(0x110, true);
-                        sendButton(0x110, false);
+                        sendButton(BTN_LEFT, true);
+                        sendButton(BTN_LEFT, false);
+                        sendButton(BTN_LEFT, true);
+                        sendButton(BTN_LEFT, false);
                         isDoubleTapPending = false;
                         lastTapTime = 0;
                     } else {
-                        sendButton(0x110, true);
-                        sendButton(0x110, false);
+                        sendButton(BTN_LEFT, true);
+                        sendButton(BTN_LEFT, false);
                         lastTapTime = event.getEventTime();
                         lastTapX = lastX1;
                         lastTapY = lastY1;
@@ -899,7 +904,7 @@ public final class Touchpad {
             }
             case MotionEvent.ACTION_CANCEL: {
                 if (isDraggingActive) {
-                    sendButton(0x110, false);
+                    sendButton(BTN_LEFT, false);
                     isDraggingActive = false;
                 }
                 resetTouchpadState();
