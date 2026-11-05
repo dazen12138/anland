@@ -211,6 +211,10 @@ public final class Touchpad {
     // The on-screen pad smooths single-finger motion; a physical pad grabbed in
     // immersive mode disables it so its cursor response matches pointer capture.
     private boolean motionSmoothingEnabled = true;
+    // Android 14+ hands a captured touchpad AXIS_RELATIVE_X/Y in its own raw
+    // units. A grabbed pad sees normalised view pixels, so it converts its
+    // motion deltas back to raw units to keep the same gain as pointer capture.
+    private boolean rawMotionDeltas = false;
 
     // 禁用双指捏合/张开与三指及以上的触摸转发手势（缩放等）。开启后这些
     // 手势被吞掉（不转发为触摸），双指滚动与双指右键点击不受影响。
@@ -300,6 +304,15 @@ public final class Touchpad {
         motionSmoothingEnabled = enabled;
         if (!enabled)
             resetSmoothing();
+    }
+
+    /**
+     * Report motion deltas in the pad's raw units instead of normalised view
+     * pixels. Used by a grabbed physical pad on Android 14+, whose pointer
+     * capture path reports raw units too.
+     */
+    void setRawMotionDeltas(boolean raw) {
+        rawMotionDeltas = raw;
     }
 
     /** Set the two-finger scroll distance per pixel of travel (0.05 ~ 5.0). */
@@ -752,10 +765,17 @@ public final class Touchpad {
                         isTwoFingerTapCandidate = false;
                     }
 
-                    float smoothDx = rawDx;
-                    float smoothDy = rawDy;
+                    float motionDx = rawDx;
+                    float motionDy = rawDy;
+                    if (rawMotionDeltas && outputWidth > 0 && outputHeight > 0) {
+                        // Undo the normalisation applied by normalizeToOutput().
+                        motionDx *= inputRangeX / (float) outputWidth;
+                        motionDy *= inputRangeY / (float) outputHeight;
+                    }
+                    float smoothDx = motionDx;
+                    float smoothDy = motionDy;
                     if (motionSmoothingEnabled) {
-                        float[] smoothed = applySmoothing(rawDx, rawDy);
+                        float[] smoothed = applySmoothing(motionDx, motionDy);
                         smoothDx = smoothed[0];
                         smoothDy = smoothed[1];
                     }
