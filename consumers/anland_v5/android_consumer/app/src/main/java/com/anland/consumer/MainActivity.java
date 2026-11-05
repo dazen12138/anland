@@ -2784,6 +2784,11 @@ public class MainActivity extends Activity
         // curve with no smoothing. Match that here, or the same pad feels
         // slower and less direct while immersive mode owns it.
         pad.setMotionSmoothingEnabled(false);
+        // Android 14+ reports a captured touchpad's relative axes in raw pad
+        // units (DeviceMode::UNSCALED). Older releases scale them to display
+        // pixels first.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+            pad.setRawMotionDeltas(true);
         pad.setOutputSize(pointerViewWidth(), pointerViewHeight());
         return pad;
     }
