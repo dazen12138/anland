@@ -814,7 +814,7 @@ public final class Touchpad {
                                 }
                                 if (Math.abs(avgDx)
                                         > Math.abs(avgDy) * AXIS_DOMINANCE_RATIO) {
-                                    sendScroll(1, avgDx * scale);
+                                    sendScroll(1, -avgDx * scale);
                                 }
                                 lastX1 = x1;
                                 lastY1 = y1;
