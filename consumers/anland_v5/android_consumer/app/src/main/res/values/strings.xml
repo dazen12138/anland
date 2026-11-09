@@ -262,9 +262,8 @@
     <string name="desktop_status_brand">ANLAND</string>
     <string name="desktop_status_waiting_title">桌面连接已断开</string>
     <string name="desktop_status_waiting_detail">正在等待桌面重新连接…</string>
-    <string name="desktop_status_waiting_daemon">正在等待守护进程重新启动…</string>
     <string name="desktop_status_closed_title">桌面已关闭</string>
-    <string name="desktop_status_closed_detail">容器内的桌面已退出或已关机。\n如果容器仍在运行，请检查 /run/display.sock。\n可以重新连接，或退出 Anland。</string>
+    <string name="desktop_status_closed_detail">桌面已退出或暂时不可用。\n如果容器仍在运行，请检查 /run/display.sock。\n可以重新连接，或退出 Anland。</string>
     <string name="desktop_status_reconnect">重新连接</string>
     <string name="desktop_status_exit">退出</string>
     <!-- Toasts -->

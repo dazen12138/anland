@@ -78,7 +78,6 @@ public class MainActivity extends Activity
     private static final long DESKTOP_PAGE_DEBOUNCE_MS = 400L;
     private static final long DESKTOP_CLOSED_GRACE_MS = 15000L;
     private static final long DESKTOP_INITIAL_WAIT_MS = 1500L;
-    private static final long DAEMON_RETRY_INTERVAL_MS = 5000L;
     private View desktopStatusOverlay;
     private TextView desktopStatusBrand;
     private TextView desktopStatusTitle;
@@ -90,18 +89,15 @@ public class MainActivity extends Activity
     // again. Cleared by onDesktopReconnected().
     private boolean desktopDisconnected;
     private long desktopLostSinceMs;
+    private boolean hudHiddenForStatusPage;
     // The grace timer expired: the page now says "desktop closed" while the
     // reconnect probes keep running.
     private boolean desktopClosed;
-    // The daemon control channel is gone or its socket disappeared. The native
-    // pipeline is stopped until a probe finds the socket again.
-    private boolean daemonGone;
     // Set once this window has successfully started a pipeline. Afterwards a
     // missing socket means "desktop/daemon went away", not "bad launch".
     private boolean pipelineStarted;
     private Runnable showDesktopPageRunnable;
     private Runnable markDesktopClosedRunnable;
-    private Runnable daemonRetryRunnable;
     private Runnable initialWaitRunnable;
     private static final String KEY_BOUND_KEYCODE = "bound_keycode";
     private static final String KEY_SOCKET_PATH = "socket_path";
@@ -385,14 +381,16 @@ public class MainActivity extends Activity
                 return;
             Log.i(TAG, "desktop producer session is live again");
             cancelDesktopPageTimers();
-            cancelDaemonRetry();
             cancelInitialWaitPage();
             socketProbeFailures = 0;
             desktopDisconnected = false;
             desktopClosed = false;
-            daemonGone = false;
             desktopLostSinceMs = 0;
             hideDesktopStatusPage();
+            if (hudHiddenForStatusPage) {
+                hudHiddenForStatusPage = false;
+                refreshHudOverlay();
+            }
             // Capture was released when the producer went away; restore it now
             // that there is a live desktop to receive the pointer again.
             if (mRoot != null)
@@ -404,10 +402,9 @@ public class MainActivity extends Activity
         });
     }
 
-    // Called once from native when the daemon/broker control socket closed. This
-    // ctx can never re-handshake, so tear the pipeline down and retry the socket
-    // path (the daemon may be respawned at the same path during a container
-    // restart).
+    // Called once from native when the daemon/broker control socket closed.
+    // The per-container daemon dies with the container, so this is the shutdown
+    // path: close the display window rather than leaving a waiting page.
     public void onControlLost() {
         Log.w(TAG, "daemon control channel lost");
         lifecycleHandler.post(() -> {
@@ -418,7 +415,7 @@ public class MainActivity extends Activity
     }
 
     private void onDesktopDisconnected() {
-        if (desktopDisconnected || daemonGone) {
+        if (desktopDisconnected) {
             // Already on the page / already reconnecting; keep the original grace
             // deadline so a flapping producer cannot postpone "desktop closed"
             // forever.
@@ -475,8 +472,9 @@ public class MainActivity extends Activity
 
     /**
      * The daemon/broker is gone (control channel death, or three failed socket
-     * probes). A container shutdown stops it; a container restart respawns it at
-     * the same path. Keep the Anland page up and retry until the socket returns.
+     * probes). The per-container daemon is tied to the container lifecycle, so
+     * its death is the shutdown signal: close the display window immediately
+     * instead of leaving a waiting page behind.
      */
     private void handleDaemonGone(boolean fromNative) {
         if (!pipelineStarted) {
@@ -488,48 +486,9 @@ public class MainActivity extends Activity
             }
             return;
         }
-        if (daemonGone) {
-            // Already stopped and probing: keep the retry loop alive at a low rate.
-            scheduleDaemonRetry(DAEMON_RETRY_INTERVAL_MS);
-            return;
-        }
-        daemonGone = true;
         Log.i(TAG, "daemon gone (" + (fromNative ? "control channel" : "socket probe")
-                + "); waiting at the Anland page");
-        if (!desktopDisconnected) {
-            desktopDisconnected = true;
-            desktopClosed = false;
-            desktopLostSinceMs = android.os.SystemClock.uptimeMillis();
-            scheduleDesktopPage();
-        } else if (!desktopClosed
-                && desktopStatusOverlay != null
-                && desktopStatusOverlay.getVisibility() == View.VISIBLE) {
-            // Page is already up within the grace window: refresh its detail.
-            showDesktopWaitingPage();
-        }
-        // The control socket is dead: this pipeline cannot recover on its own.
-        // Stop it, and let the socket probes restart it when the daemon returns.
-        cancelInitialWaitPage();
-        stopNativePipeline();
-        scheduleDaemonRetry(0);
-    }
-
-    private void scheduleDaemonRetry(long delayMs) {
-        cancelDaemonRetry();
-        daemonRetryRunnable = () -> {
-            daemonRetryRunnable = null;
-            if (!daemonGone || !mResumed || isFinishing() || isDestroyed())
-                return;
-            probeDaemonAsync();
-        };
-        lifecycleHandler.postDelayed(daemonRetryRunnable, delayMs);
-    }
-
-    private void cancelDaemonRetry() {
-        if (daemonRetryRunnable != null) {
-            lifecycleHandler.removeCallbacks(daemonRetryRunnable);
-            daemonRetryRunnable = null;
-        }
+                + "); closing the Anland window");
+        exitAnlandWindow();
     }
 
     /* A fresh pipeline starts in fallback and waits for a producer. If none
@@ -539,7 +498,7 @@ public class MainActivity extends Activity
         cancelInitialWaitPage();
         initialWaitRunnable = () -> {
             initialWaitRunnable = null;
-            if (!pipelineStarted || desktopDisconnected || daemonGone
+            if (!pipelineStarted || desktopDisconnected
                     || !mResumed || isFinishing() || isDestroyed())
                 return;
             Log.i(TAG, "no producer yet; showing the waiting page");
@@ -553,26 +512,6 @@ public class MainActivity extends Activity
             lifecycleHandler.removeCallbacks(initialWaitRunnable);
             initialWaitRunnable = null;
         }
-    }
-
-    /** Try to bring the native pipeline back once the daemon socket exists. */
-    private void resumePipelineAfterDaemonReturn() {
-        if (!daemonGone || !mResumed || mForceSettings || mNative == null
-                || !surfaceReady || surfaceView == null)
-            return;
-        android.view.Surface surface = surfaceView.getHolder().getSurface();
-        if (surface == null || !surface.isValid())
-            return;
-
-        daemonGone = false;
-        socketProbeFailures = 0;
-        cancelPendingReconnect();
-        applyConnectionConfig();
-        startNative(surface, true);
-        pushRefreshRate();
-        applyMicState();
-        applyAudioLatency();
-        applyAudioKeepalive();
     }
 
     @Override
@@ -900,17 +839,17 @@ public class MainActivity extends Activity
      * root probe is not proof that the daemon is gone: su/SELinux and socket
      * namespace visibility can fail transiently during a display reconnect.
      *
-     * Used for two things: detecting that a producer-only fallback also lost the
-     * daemon (then a full reconnect is required), and polling for the daemon to
-     * come back after a container restart. It never closes the window any more;
-     * the Anland status page owns that decision.
+     * Used after a producer fallback to distinguish "the desktop is restarting,
+     * keep waiting on the status page" (daemon alive) from "the container was
+     * shut down" (daemon gone -> close the window). Three conclusive misses are
+     * required, so a transient probe failure never closes a recoverable window.
      */
     private void probeDaemonAsync() {
         if (socketProbeInFlight)
             return;
         if (!mResumed)
             return;
-        if (!desktopDisconnected && !daemonGone)
+        if (!desktopDisconnected)
             return;
         socketProbeInFlight = true;
         final String path = resolveSocketPath();
@@ -923,7 +862,7 @@ public class MainActivity extends Activity
                 socketProbeInFlight = false;
                 if (isFinishing() || isDestroyed())
                     return;
-                if (!desktopDisconnected && !daemonGone)
+                if (!desktopDisconnected)
                     return; // reconnected while the probe was in flight
                 if (present == null) {
                     Log.w(TAG, "daemon socket probe inconclusive");
@@ -933,15 +872,6 @@ public class MainActivity extends Activity
                 }
                 if (present) {
                     socketProbeFailures = 0;
-                    if (daemonGone)
-                        resumePipelineAfterDaemonReturn();
-                    return;
-                }
-                if (daemonGone) {
-                    // Already sure it is gone; one probe per interval is enough to
-                    // notice the socket coming back. Do not re-run the 3-strike
-                    // confirm chain and spawn su every few hundred ms.
-                    scheduleDaemonRetry(DAEMON_RETRY_INTERVAL_MS);
                     return;
                 }
                 socketProbeFailures++;
@@ -1376,6 +1306,7 @@ public class MainActivity extends Activity
         // Swallow touches: the desktop behind this page is not live.
         overlay.setClickable(true);
         overlay.setFocusable(true);
+        overlay.setFocusableInTouchMode(true);
         overlay.setOnClickListener(v -> { });
 
         LinearLayout panel = new LinearLayout(this);
@@ -1437,6 +1368,8 @@ public class MainActivity extends Activity
         desktopStatusReconnect.setAllCaps(false);
         desktopStatusReconnect.setTextColor(Color.WHITE);
         desktopStatusReconnect.setBackgroundColor(0xFF3A3A3A);
+        desktopStatusReconnect.setClickable(true);
+        desktopStatusReconnect.setFocusable(true);
         desktopStatusReconnect.setOnClickListener(v -> manualDesktopReconnect());
         LinearLayout.LayoutParams reconnectLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -1449,10 +1382,9 @@ public class MainActivity extends Activity
         desktopStatusExit.setAllCaps(false);
         desktopStatusExit.setTextColor(Color.WHITE);
         desktopStatusExit.setBackgroundColor(0xFF3A3A3A);
-        desktopStatusExit.setOnClickListener(v -> {
-            stopNativePipeline();
-            finishAndRemoveTask();
-        });
+        desktopStatusExit.setClickable(true);
+        desktopStatusExit.setFocusable(true);
+        desktopStatusExit.setOnClickListener(v -> exitAnlandWindow());
         buttons.addView(desktopStatusExit, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -1476,8 +1408,14 @@ public class MainActivity extends Activity
     private void releaseInputForStatusPage() {
         automaticImmersive.cancel();
         lifecycleHandler.removeCallbacks(automaticImmersiveEntry);
-        if (systemIme != null)
-            systemIme.releaseHiddenInput();
+        if (systemIme != null) {
+            // Drop the IME window too: it is a separate window above ours and
+            // could otherwise cover the status page buttons.
+            if (systemIme.isImeVisible())
+                systemIme.toggleSystemKeyboard();
+            else
+                systemIme.releaseHiddenInput();
+        }
         if (immersive != null) immersive.stop();
         releaseAllForwardedKeys();
         releaseScreenTouches();
@@ -1488,15 +1426,15 @@ public class MainActivity extends Activity
     private void showDesktopWaitingPage() {
         if (desktopStatusOverlay == null)
             return;
-        Log.i(TAG, "showing desktop waiting page (daemonGone=" + daemonGone + ")");
+        Log.i(TAG, "showing desktop waiting page");
         releaseInputForStatusPage();
+        hideHudForStatusPage();
         desktopStatusTitle.setText(R.string.desktop_status_waiting_title);
-        desktopStatusDetail.setText(daemonGone
-                ? R.string.desktop_status_waiting_daemon
-                : R.string.desktop_status_waiting_detail);
+        desktopStatusDetail.setText(R.string.desktop_status_waiting_detail);
         desktopStatusProgress.setVisibility(View.VISIBLE);
         desktopStatusOverlay.setVisibility(View.VISIBLE);
         desktopStatusOverlay.bringToFront();
+        desktopStatusOverlay.requestFocus();
     }
 
     private void showDesktopClosedPage() {
@@ -1504,11 +1442,13 @@ public class MainActivity extends Activity
             return;
         Log.i(TAG, "showing desktop closed page");
         releaseInputForStatusPage();
+        hideHudForStatusPage();
         desktopStatusTitle.setText(R.string.desktop_status_closed_title);
         desktopStatusDetail.setText(R.string.desktop_status_closed_detail);
         desktopStatusProgress.setVisibility(View.GONE);
         desktopStatusOverlay.setVisibility(View.VISIBLE);
         desktopStatusOverlay.bringToFront();
+        desktopStatusOverlay.requestFocus();
     }
 
     private void hideDesktopStatusPage() {
@@ -1516,10 +1456,36 @@ public class MainActivity extends Activity
             desktopStatusOverlay.setVisibility(View.GONE);
     }
 
+    /** Hide layers that could eat a tap meant for the status page buttons. */
+    private void hideHudForStatusPage() {
+        hudHiddenForStatusPage = true;
+        if (mHudOverlay != null)
+            mHudOverlay.setVisibility(View.GONE);
+        if (virtualKeyboardView != null)
+            virtualKeyboardView.setVisibility(View.GONE);
+    }
+
+    /**
+     * Close this display window. Deliberately does not join the native render
+     * thread here: finishAndRemoveTask() must react to the tap immediately, and
+     * onStop/onDestroy own the pipeline teardown. A slow native stop (e.g. a
+     * blocked root helper) used to make the exit button look unresponsive.
+     */
+    private void exitAnlandWindow() {
+        Log.i(TAG, "closing the Anland display window");
+        // Give immediate visual feedback even if the lifecycle teardown (native
+        // join) takes a moment.
+        if (desktopStatusOverlay != null)
+            desktopStatusOverlay.setVisibility(View.GONE);
+        // finishAndRemoveTask() removes the Droidspaces-style task; finish() is a
+        // belt-and-braces fallback for window managers that ignore task removal.
+        finishAndRemoveTask();
+        finish();
+    }
+
     /** User pressed "reconnect" on the status page: force a clean daemon session. */
     private void manualDesktopReconnect() {
         Log.i(TAG, "manual desktop reconnect requested");
-        daemonGone = true;           // force a full stop/start even if the ctrl fd is alive
         desktopDisconnected = true;
         desktopClosed = false;
         desktopLostSinceMs = android.os.SystemClock.uptimeMillis();
@@ -1528,9 +1494,22 @@ public class MainActivity extends Activity
         scheduleDesktopPage();
         showDesktopWaitingPage();
         stopNativePipeline();
-        cancelDaemonRetry();
-        cancelInitialWaitPage();
-        probeDaemonAsync();
+
+        if (!surfaceReady || surfaceView == null || mNative == null)
+            return;
+        android.view.Surface surface = surfaceView.getHolder().getSurface();
+        if (surface == null || !surface.isValid())
+            return;
+        // The daemon may still be alive (logout leaves it running). Restart the
+        // pipeline directly and let native retries / onControlLost decide whether
+        // the daemon is really gone; skip the synchronous root probe here so the
+        // button reacts immediately.
+        applyConnectionConfig();
+        startNative(surface, true);
+        pushRefreshRate();
+        applyMicState();
+        applyAudioLatency();
+        applyAudioKeepalive();
     }
 
     private void setupFullscreen() {
@@ -2440,12 +2419,8 @@ public class MainActivity extends Activity
                 mNative.setScreenSize(width, height);
             }
             if (connectedW != viewWidth || connectedH != viewHeight) {
-                if (daemonGone) {
-                    scheduleDaemonRetry(0);
-                } else {
-                    cancelPendingReconnect();
-                    reconnectNow(surfaceView.getHolder().getSurface());
-                }
+                cancelPendingReconnect();
+                reconnectNow(surfaceView.getHolder().getSurface());
             }
             pushRefreshRate();
             applyMicState();
@@ -2477,7 +2452,7 @@ public class MainActivity extends Activity
         registerWindow();
 
         // Coming back from background while the desktop is still away: restore the
-        // Anland page (and the daemon probe) without waiting for another fallback.
+        // Anland page without waiting for another fallback.
         if (desktopDisconnected) {
             long goneFor = desktopLostSinceMs > 0
                     ? android.os.SystemClock.uptimeMillis() - desktopLostSinceMs : 0;
@@ -2490,8 +2465,6 @@ public class MainActivity extends Activity
                 // already spent away from the window.
                 scheduleDesktopPage();
             }
-            if (daemonGone)
-                scheduleDaemonRetry(0);
         }
     }
 
@@ -2538,9 +2511,8 @@ public class MainActivity extends Activity
             dm.unregisterDisplayListener(displayListener);
         stopNativePipeline();
         // No probing or page timers while the window is not on screen; onResume
-        // restores both from the retained desktopDisconnected/daemonGone state.
+        // restores the page from the retained desktopDisconnected state.
         cancelDesktopPageTimers();
-        cancelDaemonRetry();
         cancelInitialWaitPage();
         abandonMediaAudioFocus();
     }
@@ -2550,7 +2522,6 @@ public class MainActivity extends Activity
         Log.i(TAG, "onDestroy: releasing native and immersive input");
         cancelPendingReconnect();
         cancelDesktopPageTimers();
-        cancelDaemonRetry();
         cancelInitialWaitPage();
         lifecycleHandler.removeCallbacks(delayedFocusStop);
         lifecycleHandler.removeCallbacks(delayedSurfaceStop);
@@ -2783,7 +2754,9 @@ public class MainActivity extends Activity
         mHudOverlay.setLayer(keyboardUp
                 ? com.anland.consumer.hud.HudOverlayView.LAYER_KEYBOARD
                 : com.anland.consumer.hud.HudOverlayView.LAYER_HUD);
-        int next = wantHud ? View.VISIBLE : View.GONE;
+        // The desktop status page owns the screen: keep the HUD out of its way
+        // even if a resume/relayout tries to show it again.
+        int next = (wantHud && !desktopDisconnected) ? View.VISIBLE : View.GONE;
         if (next == View.GONE && mHudOverlay.getVisibility() != View.GONE) {
             // A widget hidden under the finger never sees its ACTION_UP, so the
             // gesture has to be cancelled here instead of ending in limbo.
@@ -3494,8 +3467,7 @@ public class MainActivity extends Activity
         // While the desktop is away, Back means leave the Anland page: the
         // normal path below deliberately swallows Back to keep capture alive.
         if (desktopDisconnected) {
-            stopNativePipeline();
-            finishAndRemoveTask();
+            exitAnlandWindow();
             return;
         }
         if (mHudOverlay != null && mHudOverlay.isEditMode()) {
