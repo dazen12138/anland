@@ -52,7 +52,7 @@ jobs:
 
           # push 触发的 inputs 是空字符串；显式传入的 false 也是非空，可据此区分
           BUILD_TRACY="${INPUT_BUILD_TRACY:-false}"
-          BUILD_DAEMON="${INPUT_BUILD_DAEMON:-true}"
+          BUILD_DAEMON="${INPUT_BUILD_DAEMON:-false}"
 
           PLAIN='{"task":"assemblePlainRelease","name":"anland-v5","apk":"plain/release/app-plain-release.apk"}'
           TRACY='{"task":"assembleTracyRelease","name":"anland-v5-tracy","apk":"tracy/release/app-tracy-release.apk"}'
