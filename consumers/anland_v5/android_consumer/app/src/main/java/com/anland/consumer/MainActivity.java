@@ -90,6 +90,7 @@ public class MainActivity extends Activity
     private boolean desktopDisconnected;
     private long desktopLostSinceMs;
     private boolean hudHiddenForStatusPage;
+    private boolean pointerWasReleasedForStatusPage;
     // The grace timer expired: the page now says "desktop closed" while the
     // reconnect probes keep running.
     private boolean desktopClosed;
@@ -287,6 +288,7 @@ public class MainActivity extends Activity
     // Previous captured mouse sample time. Nanoseconds keep high-report-rate
     // mice from collapsing several samples into the same millisecond.
     private long lastCapturedMouseSampleTimeNanos = 0L;
+    private long lastPointerCaptureRetryMs = 0L;
     /** Raw mouse speed at which half of the configured acceleration is applied. */
     private static final float RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S = 1000f;
     /** Pointer speed at which half of the mouse acceleration is applied. */
@@ -380,6 +382,11 @@ public class MainActivity extends Activity
             if (isFinishing() || isDestroyed())
                 return;
             Log.i(TAG, "desktop producer session is live again");
+            // Seed the producer's pointer only when the status page actually
+            // released the pointer, not on every transient resize fallback or on
+            // the very first connection (where a cursor jump would be visible).
+            boolean recoveringPointer = pointerWasReleasedForStatusPage;
+            pointerWasReleasedForStatusPage = false;
             cancelDesktopPageTimers();
             cancelInitialWaitPage();
             socketProbeFailures = 0;
@@ -391,10 +398,11 @@ public class MainActivity extends Activity
                 hudHiddenForStatusPage = false;
                 refreshHudOverlay();
             }
-            // Capture was released when the producer went away; restore it now
-            // that there is a live desktop to receive the pointer again.
-            if (mRoot != null)
-                mRoot.post(this::syncPointerCapture);
+            // Capture and hover focus were released while the page was up.
+            // Restore both, with delayed retries: the window/capture grant is
+            // asynchronous, and without this the mouse stayed dead until the
+            // user touched the screen to re-focus the window.
+            restorePointerAfterReconnect(recoveringPointer);
             // Immersive input was released with the producer; let the normal
             // auto-entry policy (if enabled) take it again for the live session.
             if (immersive != null)
@@ -546,9 +554,14 @@ public class MainActivity extends Activity
             clipboard.pushClipboard();
         }
         if (mRoot != null) {
-            if (hasFocus)
+            if (hasFocus) {
                 mRoot.post(this::syncPointerCapture);
-            else {
+                // Capture is granted asynchronously after focus settles; a
+                // single post can race it (notably when returning from a
+                // producer restart) and leaves the mouse dead until the next
+                // touch. Retry once after the window has settled.
+                lifecycleHandler.postDelayed(this::syncPointerCapture, 150L);
+            } else {
                 clearPointerCaptureBackTracking();
                 releasePointerCapture(false);
             }
@@ -1406,6 +1419,7 @@ public class MainActivity extends Activity
 
     /** Release every desktop-only input path so the status page is tappable. */
     private void releaseInputForStatusPage() {
+        pointerWasReleasedForStatusPage = true;
         automaticImmersive.cancel();
         lifecycleHandler.removeCallbacks(automaticImmersiveEntry);
         if (systemIme != null) {
@@ -1692,9 +1706,76 @@ public class MainActivity extends Activity
         });
     }
 
+    /** Re-establish Android pointer capture and the producer's pointer focus. */
+    private void restorePointerAfterReconnect(boolean seedPointer) {
+        Log.i(TAG, "restoring pointer after desktop reconnect (seed=" + seedPointer + ")");
+        lastPointerCaptureRetryMs = 0L;
+        // The status page handled focus while it was visible. Give it back to
+        // the desktop views before asking for pointer capture; on some devices
+        // the grant is refused while the content view has no focus.
+        if (surfaceView != null)
+            surfaceView.requestFocus();
+        if (mRoot != null) {
+            mRoot.requestFocus();
+        }
+        if (getWindow() != null && getWindow().getDecorView() != null)
+            getWindow().getDecorView().requestFocus();
+        if (mRoot != null) {
+            mRoot.post(this::syncPointerCapture);
+            lifecycleHandler.postDelayed(this::syncPointerCapture, 150L);
+            lifecycleHandler.postDelayed(this::syncPointerCapture, 500L);
+        }
+        // KWin drops pointer motion until it has a focused surface again. The
+        // first mouse move normally does this, but after a producer restart the
+        // seat can stay pointerless until a touch. Send the last known position
+        // once the fresh input channel is up so the physical mouse works
+        // immediately, without requiring a touchscreen tap.
+        if (seedPointer) {
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 100L);
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 500L);
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 1000L);
+        }
+    }
+
+    private void seedProducerPointer() {
+        if (mNative == null || desktopDisconnected || !mResumed
+                || isFinishing() || isDestroyed())
+            return;
+        Log.d(TAG, "seeding producer pointer position");
+        // Only re-seed a position the user actually had. Inventing a centre
+        // position on a touch-only device would move the desktop cursor for no
+        // reason.
+        boolean hadPointer = Float.isFinite(pointerX) && Float.isFinite(pointerY);
+        ensurePointerPosition();
+        if (!hadPointer || !Float.isFinite(pointerX) || !Float.isFinite(pointerY))
+            return;
+        // A non-zero delta makes this a real pointer motion for compositors that
+        // skip no-op absolute updates; 1px is corrected by the next real sample.
+        mNative.sendMouseMotion((pointerX - pointerOriginX()) * pointerScaleX(),
+                (pointerY - pointerOriginY()) * pointerScaleY(), 1f, 1f);
+    }
+
+    /**
+     * A mouse can arrive while capture is wanted but not yet active (e.g. a
+     * reconnect raced the window-focus grant). Retry on hover without clearing
+     * the Back-key suppression, so moving the mouse alone restores capture.
+     */
+    private void maybeRetryPointerCaptureOnHover() {
+        if (mRoot == null || desktopDisconnected || !pointerCaptureWanted()
+                || pointerCaptureSuppressed || !mRoot.hasWindowFocus()
+                || mRoot.hasPointerCapture())
+            return;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastPointerCaptureRetryMs < 500L)
+            return;
+        lastPointerCaptureRetryMs = now;
+        mRoot.post(this::syncPointerCapture);
+    }
+
     /** Keep the window's pointer-capture state in sync with the saved setting. */
     private void syncPointerCapture() {
-        if (mRoot == null || desktopDisconnected)
+        if (mRoot == null || desktopDisconnected || isFinishing() || isDestroyed()
+                || !mRoot.isAttachedToWindow())
             return;
 
         boolean shouldCapture = pointerCaptureWanted()
@@ -3363,12 +3444,18 @@ public class MainActivity extends Activity
         }
         if (isMouseEvent(event)) {
             int action = event.getActionMasked();
+            // If capture was lost across a producer restart, a plain hover may
+            // be the first thing the user does. Retry the capture here instead
+            // of waiting for a click/touch that may never come.
+            maybeRetryPointerCaptureOnHover();
             if (action == MotionEvent.ACTION_BUTTON_PRESS
                     && pointerCaptureWanted() && mRoot != null
                     && !mRoot.hasPointerCapture()) {
                 requestPointerCaptureAfterClick();
             }
-            if (action == MotionEvent.ACTION_HOVER_MOVE) {
+            if (action == MotionEvent.ACTION_HOVER_ENTER
+                    || action == MotionEvent.ACTION_HOVER_MOVE
+                    || action == MotionEvent.ACTION_MOVE) {
                 float nativeX, nativeY;
                 if (autoStretch) {
                     float scaleX = (customScreenWidth > 0 && viewWidth > 0) ? 
