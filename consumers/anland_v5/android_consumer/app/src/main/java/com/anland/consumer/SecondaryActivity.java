@@ -7,8 +7,9 @@ package com.anland.consumer;
  * the same process. Launch it with the {@code EXTRA_SOCKET_PATH} / {@code
  * EXTRA_WINDOW_NAME} extras to point it at another daemon and title its window.
  *
- * The launcher icon keeps starting {@link MainActivity} (the default socket, window
- * name "anland"); this class is not exposed in the launcher.
+ * The launcher icon goes through {@link LauncherActivity}, which restores an
+ * existing window or starts {@link MainActivity} (the default socket, window name
+ * "anland"); this class is not exposed in the launcher.
  */
 public class SecondaryActivity extends MainActivity {
 }

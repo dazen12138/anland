@@ -120,8 +120,10 @@ public class MainActivity extends Activity
     private boolean cameraInited = false;
     private static final String DEFAULT_SOCKET_PATH = "/data/local/tmp/display_daemon.sock";
     // Multi-instance launch parameters. A secondary window is started with these
-    // Intent extras (see SecondaryActivity / SettingsActivity); the launcher icon
-    // starts MainActivity with none, i.e. the default socket and window name "anland".
+    // Intent extras (see SecondaryActivity / SettingsActivity). A plain launcher
+    // tap goes through LauncherActivity, which either restores an existing window
+    // or starts MainActivity with none of these, i.e. the default socket and
+    // window name "anland".
     static final String EXTRA_SOCKET_PATH = "socket_path";
     static final String EXTRA_WINDOW_NAME = "window_name";
     // This window's own native transport instance (its own consumer_state handle).
@@ -206,6 +208,11 @@ public class MainActivity extends Activity
     // Layout JSON the current bar was built from; used to detect edits on resume.
 
     public static MainActivity sInstance;
+
+    /* Most recently focused live window. A plain launcher tap uses this to
+     * return to the desktop the user was actually using instead of starting the
+     * default-socket window (which usually does not exist for Droidspaces). */
+    private static MainActivity sLastActiveWindow;
 
     // ADDED: VirtualKeyboardView instance
     private VirtualKeyboardView virtualKeyboardView;
@@ -531,6 +538,8 @@ public class MainActivity extends Activity
             // Become the accessibility-key target and the focused instance, so real
             // camera frames route to this window (others get blank frames).
             sInstance = this;
+            if (!mForceSettings)
+                sLastActiveWindow = this;
             if (mNative != null) mNative.setFocused(true);
             // Automatic immersive entry can happen from onResume() before the
             // window has received its first focus callback. Retry the policy lease
@@ -902,6 +911,50 @@ public class MainActivity extends Activity
         worker.start();
     }
 
+    private static boolean isReusableWindow(MainActivity window) {
+        return window != null && !window.isFinishing() && !window.isDestroyed();
+    }
+
+    /** A launcher tap carries MAIN/LAUNCHER and no per-window extras. */
+    private static boolean isPlainLauncherIntent(Intent intent) {
+        if (intent == null
+                || intent.hasExtra(EXTRA_SOCKET_PATH)
+                || intent.hasExtra(EXTRA_WINDOW_NAME))
+            return false;
+        // Standard launchers send CATEGORY_LAUNCHER; accept a bare ACTION_MAIN
+        // too (some OEM launchers and `am start` omit the category).
+        return intent.hasCategory(Intent.CATEGORY_LAUNCHER)
+                || Intent.ACTION_MAIN.equals(intent.getAction());
+    }
+
+    private void bringWindowToFront(MainActivity window) {
+        ActivityManager am = getSystemService(ActivityManager.class);
+        if (am == null)
+            return;
+        try {
+            am.moveTaskToFront(window.getTaskId(), 0);
+        } catch (RuntimeException e) {
+            // The task can disappear between the liveness check and the move.
+            Log.w(TAG, "moveTaskToFront failed", e);
+        }
+    }
+
+    /** LauncherActivity entry: the window a tap should restore, if any. */
+    static MainActivity findReusableWindowForLauncher() {
+        return findReusableWindow();
+    }
+
+    /** The window a plain launcher tap should return to, or null for Settings. */
+    private static MainActivity findReusableWindow() {
+        if (isReusableWindow(sLastActiveWindow))
+            return sLastActiveWindow;
+        for (MainActivity candidate : sWindowsBySocket.values()) {
+            if (isReusableWindow(candidate))
+                return candidate;
+        }
+        return null;
+    }
+
     // (Re)register this window under its current socket in sWindowsBySocket. A
     // window with no Intent override resolves its socket from the saved pref, which
     // the user can change in Settings, so re-key whenever it may have moved.
@@ -918,9 +971,6 @@ public class MainActivity extends Activity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setupMediaAudio();
-        applyOrientation();
-
         // Apply the launch parameters: socket path (overrides the saved pref) and
         // window name (task title). Read them before anything else so the dedup
         // check below sees this window's target socket.
@@ -934,12 +984,31 @@ public class MainActivity extends Activity
                 mWindowName = name.trim();
         }
 
+        // A plain launcher tap is a "return to my desktop" action. If any Anland
+        // window is still alive (even while backgrounded), bring the last active
+        // one forward instead of starting the default-socket window or bouncing
+        // to Settings. Droidspaces launches SecondaryActivity with extras, so it
+        // never takes this path.
+        if (isPlainLauncherIntent(launch)) {
+            MainActivity reusable = findReusableWindow();
+            if (reusable != null && reusable != this) {
+                Log.i(TAG, "launcher tap: returning to the active Anland window");
+                bringWindowToFront(reusable);
+                mForceSettings = true;   // nothing was set up; skip resume teardown
+                finishAndRemoveTask();
+                return;
+            }
+        }
+
+        setupMediaAudio();
+        applyOrientation();
+
         // Skip opening a duplicate: if another live window already targets this
         // socket, bring it to the front and drop this (freshly spawned) task.
         MainActivity existing = sWindowsBySocket.get(resolveSocketPath());
         if (existing != null && existing != this && !existing.isFinishing()) {
-            ActivityManager am = getSystemService(ActivityManager.class);
-            if (am != null) am.moveTaskToFront(existing.getTaskId(), 0);
+            bringWindowToFront(existing);
+            mForceSettings = true;   // nothing was set up; skip resume teardown
             finishAndRemoveTask();
             return;
         }
@@ -1210,6 +1279,24 @@ public class MainActivity extends Activity
         root.post(this::syncPointerCapture);
 
         registerWindow();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // singleTask: if a launcher MainActivity is reused while a different
+        // Anland window was the one the user was last using, bring that window
+        // forward instead of leaving this default-socket window on top.
+        if (!isPlainLauncherIntent(intent))
+            return;
+        setIntent(intent);
+        if (mForceSettings)
+            return;
+        MainActivity reusable = findReusableWindow();
+        if (reusable != null && reusable != this) {
+            Log.i(TAG, "launcher tap (onNewIntent): returning to the active Anland window");
+            bringWindowToFront(reusable);
+        }
     }
 
     private static final String NOTIFICATION_CHANNEL = "anland_channel";
@@ -2438,6 +2525,7 @@ public class MainActivity extends Activity
             return;
         }
 
+        sLastActiveWindow = this;
         tabletInputManager = getSystemService(InputManager.class);
         if (tabletInputManager != null && !tabletDeviceListenerRegistered) {
             tabletInputManager.registerInputDeviceListener(tabletDeviceListener, lifecycleHandler);
@@ -2627,6 +2715,8 @@ public class MainActivity extends Activity
             sWindowsBySocket.remove(mRegisteredSocket, this);
             mRegisteredSocket = null;
         }
+        if (sLastActiveWindow == this)
+            sLastActiveWindow = null;
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (nm != null) nm.cancel(NOTIFICATION_ID);
         // Release only THIS window's native pipeline (its consumer_state, audio bridge
