@@ -53,8 +53,24 @@ struct display_ctx {
 
     void (*fallback_cb)(void *);
     void (*exit_fallback_cb)(void *);
+    void (*control_lost_cb)(void *);
     void  *fallback_userdata;
     void  *exit_fallback_userdata;
+    void  *control_lost_userdata;
+
+    /* Set once the daemon's control socket has reported HUP/ERR. A unix socket
+     * never recovers, so the consumer cannot re-handshake on this ctx: the host
+     * must tear the instance down and reconnect to the (possibly respawned)
+     * daemon. Kept here so the render thread polls exactly once and the callback
+     * fires once. */
+    bool     ctrl_lost;
+
+    /* False while enter_fallback() is still re-depositing the fresh fd set and
+     * stopping the event thread. The render thread must not try_exit_fallback()
+     * in that window: it could receive the new FDS_READY before on_fallback()
+     * has run and start the event thread only to have enter_fallback() stop it
+     * again. True at the end of a completed connect/down transition. */
+    volatile bool fallback_ready;
     struct service_info *services;
     int             num_services;
     struct resources *resources;
@@ -251,7 +267,11 @@ static bool try_exit_fallback(display_ctx *ctx)
     if (!won)
         return false;
 
-    push_dmabufs_internal(ctx);   /* outside the lock: may enter_fallback on failure */
+    /* Publishing the dmabuf set is part of the up-transition. If it fails, the
+     * helper has already re-entered fallback (and fired on_fallback); do not
+     * report a live session or run the exit callback on a half-open connection. */
+    if (push_dmabufs_internal(ctx) < 0)
+        return false;
     if (ctx->exit_fallback_cb)
         ctx->exit_fallback_cb(ctx->exit_fallback_userdata);
     return true;
@@ -266,6 +286,10 @@ static void enter_fallback(display_ctx *ctx)
         pthread_mutex_unlock(&ctx->state_lock);
         return;
     }
+    /* Publish "not reconnectable yet" before fallback: a render thread that sees
+     * fallback set must also see this gate, or it can consume the new FDS_READY
+     * and start the event thread while this down transition is still running. */
+    __atomic_store_n(&ctx->fallback_ready, false, __ATOMIC_RELEASE);
     ctx->fallback = true;          /* set first: lockless hot-path writers bail early */
     free_resources(ctx);
     ctx->buffer_pending = false;
@@ -294,6 +318,76 @@ static void enter_fallback(display_ctx *ctx)
     /* User callback (JNI, stops the event thread) runs OUTSIDE both locks. */
     if (ctx->fallback_cb)
         ctx->fallback_cb(ctx->fallback_userdata);
+
+    /* Only now may the render thread drive the up transition: the event thread
+     * has been told to stop, so exit_fallback_cb() can start a fresh one without
+     * racing this teardown. */
+    __atomic_store_n(&ctx->fallback_ready, true, __ATOMIC_RELEASE);
+}
+
+int consumer_is_fallback(display_ctx *ctx)
+{
+    return !ctx || ctx->fallback;
+}
+
+/* True when the control socket is closed/broken. The daemon holds the only
+ * other end, so HUP here means the broker is gone and this ctx can never
+ * reconnect on its own -- not even after a new producer appears. */
+static bool control_channel_dead(display_ctx *ctx)
+{
+    if (!ctx || ctx->ctrl_fd < 0)
+        return true;
+
+    struct pollfd pfd = { .fd = ctx->ctrl_fd, .events = POLLIN };
+    int ret = poll(&pfd, 1, 0);
+    if (ret < 0)
+        return errno != EINTR;
+    return (pfd.revents & (POLLHUP | POLLERR | POLLNVAL)) != 0;
+}
+
+/* Render-thread tick while the consumer is in fallback.
+ *
+ * Returns 1 once the connection is live again (fds picked up from the daemon),
+ * 0 while it is still waiting for a producer, and -1 when the daemon control
+ * channel is gone; in the -1 case the control-lost callback has fired and the
+ * host is expected to tear this instance down and reconnect.
+ *
+ * This is the single path out of fallback: without it, the render loop would
+ * keep calling select_dmabuf(), which returned 0 in fallback, and then queue
+ * the same buffers back to SurfaceFlinger at full speed -- alternating between
+ * stale frames (visible flicker) and burning CPU forever. */
+int consumer_try_reconnect(display_ctx *ctx)
+{
+    if (!ctx)
+        return -1;
+    if (!ctx->fallback)
+        return 1;
+    if (ctx->ctrl_lost)
+        return -1;
+    if (!__atomic_load_n(&ctx->fallback_ready, __ATOMIC_ACQUIRE))
+        return 0;
+
+    if (try_exit_fallback(ctx))
+        return 1;
+
+    if (control_channel_dead(ctx)) {
+        ctx->ctrl_lost = true;
+        if (ctx->control_lost_cb)
+            ctx->control_lost_cb(ctx->control_lost_userdata);
+        return -1;
+    }
+    return 0;
+}
+
+int consumer_set_control_lost_callback(display_ctx *ctx,
+                                       void (*on_control_lost)(void *),
+                                       void *userdata)
+{
+    if (!ctx)
+        return -1;
+    ctx->control_lost_cb = on_control_lost;
+    ctx->control_lost_userdata = userdata;
+    return 0;
 }
 int connect_to_deamon(display_ctx **out, const char *socket_path){
     return connect_to_deamon_with_fd(out, connect_unix(socket_path));
@@ -331,6 +425,10 @@ int connect_to_deamon_with_fd(display_ctx **out, int ctrl_fd)
 
     if (send_hello_fds(ctx) < 0)
         goto fail;
+
+    /* The initial fd deposit is complete; the render thread may now drive the
+     * first up transition through consumer_try_reconnect(). */
+    __atomic_store_n(&ctx->fallback_ready, true, __ATOMIC_RELEASE);
 
     *out = ctx;
     return 0;

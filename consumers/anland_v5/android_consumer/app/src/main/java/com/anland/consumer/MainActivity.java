@@ -17,6 +17,7 @@ import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,7 +39,11 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.util.DisplayMetrics;   // ADDED
 
 import java.nio.charset.StandardCharsets;
@@ -64,6 +69,37 @@ public class MainActivity extends Activity
     private long lastReconnectTimeMs;
     private int connectedW;
     private int connectedH;
+
+    /* ---- Desktop (producer) lifecycle page ----
+     * Losing the producer is normal while a container reboots, and fatal when the
+     * desktop was shut down/logged out. The page below distinguishes "waiting for
+     * it to come back" from "it is gone", and never leaves the user staring at a
+     * frozen or flickering last frame. */
+    private static final long DESKTOP_PAGE_DEBOUNCE_MS = 400L;
+    private static final long DESKTOP_CLOSED_GRACE_MS = 15000L;
+    private static final long DESKTOP_INITIAL_WAIT_MS = 1500L;
+    private View desktopStatusOverlay;
+    private TextView desktopStatusBrand;
+    private TextView desktopStatusTitle;
+    private TextView desktopStatusDetail;
+    private ProgressBar desktopStatusProgress;
+    private Button desktopStatusReconnect;
+    private Button desktopStatusExit;
+    // True from the first producer fallback until a producer session is live
+    // again. Cleared by onDesktopReconnected().
+    private boolean desktopDisconnected;
+    private long desktopLostSinceMs;
+    private boolean hudHiddenForStatusPage;
+    private boolean pointerWasReleasedForStatusPage;
+    // The grace timer expired: the page now says "desktop closed" while the
+    // reconnect probes keep running.
+    private boolean desktopClosed;
+    // Set once this window has successfully started a pipeline. Afterwards a
+    // missing socket means "desktop/daemon went away", not "bad launch".
+    private boolean pipelineStarted;
+    private Runnable showDesktopPageRunnable;
+    private Runnable markDesktopClosedRunnable;
+    private Runnable initialWaitRunnable;
     private static final String KEY_BOUND_KEYCODE = "bound_keycode";
     private static final String KEY_SOCKET_PATH = "socket_path";
     private static final String KEY_USE_ROOT = "use_root";
@@ -252,6 +288,7 @@ public class MainActivity extends Activity
     // Previous captured mouse sample time. Nanoseconds keep high-report-rate
     // mice from collapsing several samples into the same millisecond.
     private long lastCapturedMouseSampleTimeNanos = 0L;
+    private long lastPointerCaptureRetryMs = 0L;
     /** Raw mouse speed at which half of the configured acceleration is applied. */
     private static final float RELATIVE_ACCEL_REFERENCE_COUNTS_PER_S = 1000f;
     /** Pointer speed at which half of the mouse acceleration is applied. */
@@ -319,20 +356,170 @@ public class MainActivity extends Activity
     // Called from native on_fallback (display lib dropped the connection). Always
     // enqueue the UI work: this can be called inline from push_input_event while a
     // JNI sender holds input_lock, and cancelAll sends back through that same lock.
-    // The display transport already has a reconnect path; only close this window
-    // after repeated root probes agree that the producer socket is really gone.
+    //
+    // A producer loss is not fatal: the daemon stays connected and the render
+    // thread waits (without touching the buffer queue) for the next producer
+    // session. Show the Anland status page, and only fall back to a full daemon
+    // reconnect when the control channel itself reports death.
     public void onFallback(){
         Log.w(TAG, "display transport fallback");
         lifecycleHandler.post(() -> {
+            if (isFinishing() || isDestroyed())
+                return;
             // The producer connection is gone: every consumer var regresses to 0.
             // The producer resends the current value once it reconnects.
             tabletInput.cancelAll(SystemClock.uptimeMillis());
             resetTabletIdentitySession();
             captureMouseForced = false;
-            if (mRoot != null)
-                mRoot.post(this::syncPointerCapture);
-            probeDaemonAsync();
+            onDesktopDisconnected();
         });
+    }
+
+    // Called from native select_dmabuf/try_exit_fallback when the consumer has a
+    // live producer session again.
+    public void onDesktopReconnected() {
+        lifecycleHandler.post(() -> {
+            if (isFinishing() || isDestroyed())
+                return;
+            Log.i(TAG, "desktop producer session is live again");
+            // Seed the producer's pointer only when the status page actually
+            // released the pointer, not on every transient resize fallback or on
+            // the very first connection (where a cursor jump would be visible).
+            boolean recoveringPointer = pointerWasReleasedForStatusPage;
+            pointerWasReleasedForStatusPage = false;
+            cancelDesktopPageTimers();
+            cancelInitialWaitPage();
+            socketProbeFailures = 0;
+            desktopDisconnected = false;
+            desktopClosed = false;
+            desktopLostSinceMs = 0;
+            hideDesktopStatusPage();
+            if (hudHiddenForStatusPage) {
+                hudHiddenForStatusPage = false;
+                refreshHudOverlay();
+            }
+            // Capture and hover focus were released while the page was up.
+            // Restore both, with delayed retries: the window/capture grant is
+            // asynchronous, and without this the mouse stayed dead until the
+            // user touched the screen to re-focus the window.
+            restorePointerAfterReconnect(recoveringPointer);
+            // Immersive input was released with the producer; let the normal
+            // auto-entry policy (if enabled) take it again for the live session.
+            if (immersive != null)
+                armAutomaticImmersiveEntry();
+        });
+    }
+
+    // Called once from native when the daemon/broker control socket closed.
+    // The per-container daemon dies with the container, so this is the shutdown
+    // path: close the display window rather than leaving a waiting page.
+    public void onControlLost() {
+        Log.w(TAG, "daemon control channel lost");
+        lifecycleHandler.post(() -> {
+            if (isFinishing() || isDestroyed())
+                return;
+            handleDaemonGone(true);
+        });
+    }
+
+    private void onDesktopDisconnected() {
+        if (desktopDisconnected) {
+            // Already on the page / already reconnecting; keep the original grace
+            // deadline so a flapping producer cannot postpone "desktop closed"
+            // forever.
+            return;
+        }
+        desktopDisconnected = true;
+        desktopClosed = false;
+        desktopLostSinceMs = android.os.SystemClock.uptimeMillis();
+        scheduleDesktopPage();
+        probeDaemonAsync();
+    }
+
+    private void scheduleDesktopPage() {
+        cancelDesktopPageTimers();
+        long now = android.os.SystemClock.uptimeMillis();
+        long age = desktopLostSinceMs > 0 ? now - desktopLostSinceMs : 0;
+        if (age >= DESKTOP_CLOSED_GRACE_MS) {
+            desktopClosed = true;
+            showDesktopClosedPage();
+            return;
+        }
+        showDesktopPageRunnable = () -> {
+            showDesktopPageRunnable = null;
+            if (!desktopDisconnected)
+                return;
+            showDesktopWaitingPage();
+        };
+        markDesktopClosedRunnable = () -> {
+            markDesktopClosedRunnable = null;
+            if (!desktopDisconnected)
+                return;
+            desktopClosed = true;
+            showDesktopClosedPage();
+        };
+        // Account for time spent in the background: onStop cancels these timers,
+        // and onResume must not restart a full grace window for a desktop that
+        // has already been gone for minutes.
+        long showDelay = Math.max(0L, DESKTOP_PAGE_DEBOUNCE_MS - age);
+        long closeDelay = Math.max(0L, DESKTOP_CLOSED_GRACE_MS - age);
+        lifecycleHandler.postDelayed(showDesktopPageRunnable, showDelay);
+        lifecycleHandler.postDelayed(markDesktopClosedRunnable, closeDelay);
+    }
+
+    private void cancelDesktopPageTimers() {
+        if (showDesktopPageRunnable != null) {
+            lifecycleHandler.removeCallbacks(showDesktopPageRunnable);
+            showDesktopPageRunnable = null;
+        }
+        if (markDesktopClosedRunnable != null) {
+            lifecycleHandler.removeCallbacks(markDesktopClosedRunnable);
+            markDesktopClosedRunnable = null;
+        }
+    }
+
+    /**
+     * The daemon/broker is gone (control channel death, or three failed socket
+     * probes). The per-container daemon is tied to the container lifecycle, so
+     * its death is the shutdown signal: close the display window immediately
+     * instead of leaving a waiting page behind.
+     */
+    private void handleDaemonGone(boolean fromNative) {
+        if (!pipelineStarted) {
+            // Never connected: preserve the launch checks (toast / Settings).
+            if (mSocketOverride != null) {
+                android.widget.Toast.makeText(this, "Socket Not Found",
+                        android.widget.Toast.LENGTH_SHORT).show();
+                finishAndRemoveTask();
+            }
+            return;
+        }
+        Log.i(TAG, "daemon gone (" + (fromNative ? "control channel" : "socket probe")
+                + "); closing the Anland window");
+        exitAnlandWindow();
+    }
+
+    /* A fresh pipeline starts in fallback and waits for a producer. If none
+     * arrives shortly after launch/reconnect, show the Anland page instead of a
+     * black SurfaceView. A fast producer connect cancels this. */
+    private void scheduleInitialWaitPage() {
+        cancelInitialWaitPage();
+        initialWaitRunnable = () -> {
+            initialWaitRunnable = null;
+            if (!pipelineStarted || desktopDisconnected
+                    || !mResumed || isFinishing() || isDestroyed())
+                return;
+            Log.i(TAG, "no producer yet; showing the waiting page");
+            onDesktopDisconnected();
+        };
+        lifecycleHandler.postDelayed(initialWaitRunnable, DESKTOP_INITIAL_WAIT_MS);
+    }
+
+    private void cancelInitialWaitPage() {
+        if (initialWaitRunnable != null) {
+            lifecycleHandler.removeCallbacks(initialWaitRunnable);
+            initialWaitRunnable = null;
+        }
     }
 
     @Override
@@ -367,9 +554,14 @@ public class MainActivity extends Activity
             clipboard.pushClipboard();
         }
         if (mRoot != null) {
-            if (hasFocus)
+            if (hasFocus) {
                 mRoot.post(this::syncPointerCapture);
-            else {
+                // Capture is granted asynchronously after focus settles; a
+                // single post can race it (notably when returning from a
+                // producer restart) and leaves the mouse dead until the next
+                // touch. Retry once after the window has settled.
+                lifecycleHandler.postDelayed(this::syncPointerCapture, 150L);
+            } else {
                 clearPointerCaptureBackTracking();
                 releasePointerCapture(false);
             }
@@ -422,9 +614,23 @@ public class MainActivity extends Activity
 
     // Start (or restart) this window's native pipeline, but only if the daemon
     // socket is still a live socket. The daemon can go down after launch, so
-    // re-check on every (re)connect; if it is gone, report it and exit the window.
+    // re-check on every (re)connect. Before the first successful start a missing
+    // socket bounces the window; afterwards it means the desktop/daemon went away
+    // and is handled by the Anland status page + retry, never by closing the
+    // window (that would also break auto-recovery across a container restart).
     private void startNative(android.view.Surface surface) {
-        if (!isSocketFile(resolveSocketPath())) {
+        startNative(surface, false);
+    }
+
+    /* socketProbedPresent: the caller just confirmed the socket from a worker
+     * thread. Skip the synchronous root probe so recovery after a container
+     * restart does not freeze the UI thread for up to SU_PROBE_TIMEOUT_MS. */
+    private void startNative(android.view.Surface surface, boolean socketProbedPresent) {
+        if (!socketProbedPresent && !isSocketFile(resolveSocketPath())) {
+            if (pipelineStarted) {
+                handleDaemonGone(false);
+                return;
+            }
             android.widget.Toast.makeText(this, "Deamon Down",
                     android.widget.Toast.LENGTH_SHORT).show();
             finish();
@@ -433,9 +639,11 @@ public class MainActivity extends Activity
         if (viewWidth > 0 && viewHeight > 0)
             mNative.setScreenSize(viewWidth, viewHeight);
         mNative.start(surface, clipboard, this);
+        pipelineStarted = true;
         connectedW = viewWidth;
         connectedH = viewHeight;
         lastReconnectTimeMs = android.os.SystemClock.uptimeMillis();
+        scheduleInitialWaitPage();
     }
 
     private void cancelPendingReconnect() {
@@ -449,6 +657,7 @@ public class MainActivity extends Activity
         tabletInput.cancelAll(SystemClock.uptimeMillis());
         cancelOverlayTouches();
         cancelPendingReconnect();
+        cancelInitialWaitPage();
         if (mNative != null)
             mNative.stop();
         resetTabletIdentitySession();
@@ -511,12 +720,13 @@ public class MainActivity extends Activity
         scheduleReconnect(surfaceView.getHolder());
     }
 
-    // True only when `path` exists and is a unix-domain socket. In root mode the
+    // True only when `path` is a usable unix-domain socket. In root mode the
     // daemon socket usually lives in a root-only location (e.g. /data/local/tmp),
     // which this untrusted_app process cannot stat() directly -- a direct stat
     // would EACCES and wrongly report "no socket". So when root mode is on we run
-    // the bundled helper as root (`su -c "<helper> <path> test"`) and read its
-    // exit code instead; otherwise we stat() locally.
+    // the bundled helper as root (`su -c "<helper> <path> test"`), which also
+    // connects once so a stale socket file left by a dead daemon is rejected;
+    // otherwise we stat() locally.
     private boolean isSocketFile(String path) {
         boolean useRoot = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getBoolean(KEY_USE_ROOT, true);
@@ -600,6 +810,10 @@ public class MainActivity extends Activity
     }
 
     private void tryAutomaticImmersiveEntry() {
+        // Never grab the input devices while the status page is up: the user has
+        // to be able to tap reconnect/exit.
+        if (desktopDisconnected)
+            return;
         if (!automaticImmersive.canAttempt(mResumed, surfaceReady, hasWindowFocus())
                 || immersive == null)
             return;
@@ -637,9 +851,18 @@ public class MainActivity extends Activity
      * Checks the daemon socket without blocking the UI thread. A single failed
      * root probe is not proof that the daemon is gone: su/SELinux and socket
      * namespace visibility can fail transiently during a display reconnect.
+     *
+     * Used after a producer fallback to distinguish "the desktop is restarting,
+     * keep waiting on the status page" (daemon alive) from "the container was
+     * shut down" (daemon gone -> close the window). Three conclusive misses are
+     * required, so a transient probe failure never closes a recoverable window.
      */
     private void probeDaemonAsync() {
         if (socketProbeInFlight)
+            return;
+        if (!mResumed)
+            return;
+        if (!desktopDisconnected)
             return;
         socketProbeInFlight = true;
         final String path = resolveSocketPath();
@@ -652,6 +875,8 @@ public class MainActivity extends Activity
                 socketProbeInFlight = false;
                 if (isFinishing() || isDestroyed())
                     return;
+                if (!desktopDisconnected)
+                    return; // reconnected while the probe was in flight
                 if (present == null) {
                     Log.w(TAG, "daemon socket probe inconclusive");
                     lifecycleHandler.postDelayed(MainActivity.this::probeDaemonAsync,
@@ -670,9 +895,7 @@ public class MainActivity extends Activity
                             SOCKET_PROBE_RETRY_MS);
                     return;
                 }
-                android.widget.Toast.makeText(this, "Deamon Down",
-                        android.widget.Toast.LENGTH_SHORT).show();
-                finish();
+                handleDaemonGone(false);
             });
         }, "anland-socket-probe");
         worker.setDaemon(true);
@@ -937,6 +1160,10 @@ public class MainActivity extends Activity
         // (see toggleVirtualKeyboard). Positioning it here would spin forever:
         // the view starts GONE and a GONE view is never measured.
 
+        // Status page for "producer went away": added last so it covers both the
+        // stale last desktop frame and the HUD/keyboard until a producer returns.
+        createDesktopStatusOverlay(root);
+
         setContentView(root);
         // Establish a focused descendant after attachment so the DecorView routes
         // captured-pointer events through our content root.
@@ -1082,6 +1309,221 @@ public class MainActivity extends Activity
 
     private int dpToPx(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
+    }
+
+    /* ---------------- Desktop disconnected / closed page ---------------- */
+
+    private void createDesktopStatusOverlay(FrameLayout root) {
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(0xF2000000);
+        // Swallow touches: the desktop behind this page is not live.
+        overlay.setClickable(true);
+        overlay.setFocusable(true);
+        overlay.setFocusableInTouchMode(true);
+        overlay.setOnClickListener(v -> { });
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dpToPx(32), dpToPx(32), dpToPx(32), dpToPx(32));
+
+        desktopStatusBrand = new TextView(this);
+        desktopStatusBrand.setText(R.string.desktop_status_brand);
+        desktopStatusBrand.setTextColor(0xFF8AB4F8);
+        desktopStatusBrand.setTextSize(13);
+        desktopStatusBrand.setLetterSpacing(0.18f);
+        desktopStatusBrand.setGravity(Gravity.CENTER);
+        panel.addView(desktopStatusBrand, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        desktopStatusTitle = new TextView(this);
+        desktopStatusTitle.setText(R.string.desktop_status_waiting_title);
+        desktopStatusTitle.setTextColor(Color.WHITE);
+        desktopStatusTitle.setTextSize(24);
+        desktopStatusTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        titleLp.topMargin = dpToPx(18);
+        panel.addView(desktopStatusTitle, titleLp);
+
+        desktopStatusDetail = new TextView(this);
+        desktopStatusDetail.setText(R.string.desktop_status_waiting_detail);
+        desktopStatusDetail.setTextColor(0xFFCCCCCC);
+        desktopStatusDetail.setTextSize(15);
+        desktopStatusDetail.setGravity(Gravity.CENTER);
+        desktopStatusDetail.setLineSpacing(dpToPx(3), 1f);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        detailLp.topMargin = dpToPx(10);
+        panel.addView(desktopStatusDetail, detailLp);
+
+        desktopStatusProgress = new ProgressBar(this);
+        desktopStatusProgress.setIndeterminate(true);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+                dpToPx(32), dpToPx(32));
+        progressLp.topMargin = dpToPx(22);
+        panel.addView(desktopStatusProgress, progressLp);
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        buttons.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        buttonsLp.topMargin = dpToPx(24);
+        panel.addView(buttons, buttonsLp);
+
+        desktopStatusReconnect = new Button(this);
+        desktopStatusReconnect.setText(R.string.desktop_status_reconnect);
+        desktopStatusReconnect.setAllCaps(false);
+        desktopStatusReconnect.setTextColor(Color.WHITE);
+        desktopStatusReconnect.setBackgroundColor(0xFF3A3A3A);
+        desktopStatusReconnect.setClickable(true);
+        desktopStatusReconnect.setFocusable(true);
+        desktopStatusReconnect.setOnClickListener(v -> manualDesktopReconnect());
+        LinearLayout.LayoutParams reconnectLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        reconnectLp.rightMargin = dpToPx(12);
+        buttons.addView(desktopStatusReconnect, reconnectLp);
+
+        desktopStatusExit = new Button(this);
+        desktopStatusExit.setText(R.string.desktop_status_exit);
+        desktopStatusExit.setAllCaps(false);
+        desktopStatusExit.setTextColor(Color.WHITE);
+        desktopStatusExit.setBackgroundColor(0xFF3A3A3A);
+        desktopStatusExit.setClickable(true);
+        desktopStatusExit.setFocusable(true);
+        desktopStatusExit.setOnClickListener(v -> exitAnlandWindow());
+        buttons.addView(desktopStatusExit, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout.LayoutParams panelLp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER);
+        panelLp.leftMargin = dpToPx(24);
+        panelLp.rightMargin = dpToPx(24);
+        overlay.addView(panel, panelLp);
+        overlay.setVisibility(View.GONE);
+
+        desktopStatusOverlay = overlay;
+        root.addView(overlay, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    /** Release every desktop-only input path so the status page is tappable. */
+    private void releaseInputForStatusPage() {
+        pointerWasReleasedForStatusPage = true;
+        automaticImmersive.cancel();
+        lifecycleHandler.removeCallbacks(automaticImmersiveEntry);
+        if (systemIme != null) {
+            // Drop the IME window too: it is a separate window above ours and
+            // could otherwise cover the status page buttons.
+            if (systemIme.isImeVisible())
+                systemIme.toggleSystemKeyboard();
+            else
+                systemIme.releaseHiddenInput();
+        }
+        if (immersive != null) immersive.stop();
+        releaseAllForwardedKeys();
+        releaseScreenTouches();
+        releasePointerCapture(false);
+        OplusRefreshRateLease.release(this);
+    }
+
+    private void showDesktopWaitingPage() {
+        if (desktopStatusOverlay == null)
+            return;
+        Log.i(TAG, "showing desktop waiting page");
+        releaseInputForStatusPage();
+        hideHudForStatusPage();
+        desktopStatusTitle.setText(R.string.desktop_status_waiting_title);
+        desktopStatusDetail.setText(R.string.desktop_status_waiting_detail);
+        desktopStatusProgress.setVisibility(View.VISIBLE);
+        desktopStatusOverlay.setVisibility(View.VISIBLE);
+        desktopStatusOverlay.bringToFront();
+        desktopStatusOverlay.requestFocus();
+    }
+
+    private void showDesktopClosedPage() {
+        if (desktopStatusOverlay == null)
+            return;
+        Log.i(TAG, "showing desktop closed page");
+        releaseInputForStatusPage();
+        hideHudForStatusPage();
+        desktopStatusTitle.setText(R.string.desktop_status_closed_title);
+        desktopStatusDetail.setText(R.string.desktop_status_closed_detail);
+        desktopStatusProgress.setVisibility(View.GONE);
+        desktopStatusOverlay.setVisibility(View.VISIBLE);
+        desktopStatusOverlay.bringToFront();
+        desktopStatusOverlay.requestFocus();
+    }
+
+    private void hideDesktopStatusPage() {
+        if (desktopStatusOverlay != null)
+            desktopStatusOverlay.setVisibility(View.GONE);
+    }
+
+    /** Hide layers that could eat a tap meant for the status page buttons. */
+    private void hideHudForStatusPage() {
+        hudHiddenForStatusPage = true;
+        if (mHudOverlay != null)
+            mHudOverlay.setVisibility(View.GONE);
+        if (virtualKeyboardView != null)
+            virtualKeyboardView.setVisibility(View.GONE);
+    }
+
+    /**
+     * Close this display window. Deliberately does not join the native render
+     * thread here: finishAndRemoveTask() must react to the tap immediately, and
+     * onStop/onDestroy own the pipeline teardown. A slow native stop (e.g. a
+     * blocked root helper) used to make the exit button look unresponsive.
+     */
+    private void exitAnlandWindow() {
+        Log.i(TAG, "closing the Anland display window");
+        // Give immediate visual feedback even if the lifecycle teardown (native
+        // join) takes a moment.
+        if (desktopStatusOverlay != null)
+            desktopStatusOverlay.setVisibility(View.GONE);
+        // finishAndRemoveTask() removes the Droidspaces-style task; finish() is a
+        // belt-and-braces fallback for window managers that ignore task removal.
+        finishAndRemoveTask();
+        finish();
+    }
+
+    /** User pressed "reconnect" on the status page: force a clean daemon session. */
+    private void manualDesktopReconnect() {
+        Log.i(TAG, "manual desktop reconnect requested");
+        desktopDisconnected = true;
+        desktopClosed = false;
+        desktopLostSinceMs = android.os.SystemClock.uptimeMillis();
+        socketProbeFailures = 0;
+        cancelDesktopPageTimers();
+        scheduleDesktopPage();
+        showDesktopWaitingPage();
+        stopNativePipeline();
+
+        if (!surfaceReady || surfaceView == null || mNative == null)
+            return;
+        android.view.Surface surface = surfaceView.getHolder().getSurface();
+        if (surface == null || !surface.isValid())
+            return;
+        // The daemon may still be alive (logout leaves it running). Restart the
+        // pipeline directly and let native retries / onControlLost decide whether
+        // the daemon is really gone; skip the synchronous root probe here so the
+        // button reacts immediately.
+        applyConnectionConfig();
+        startNative(surface, true);
+        pushRefreshRate();
+        applyMicState();
+        applyAudioLatency();
+        applyAudioKeepalive();
     }
 
     private void setupFullscreen() {
@@ -1264,9 +1706,76 @@ public class MainActivity extends Activity
         });
     }
 
+    /** Re-establish Android pointer capture and the producer's pointer focus. */
+    private void restorePointerAfterReconnect(boolean seedPointer) {
+        Log.i(TAG, "restoring pointer after desktop reconnect (seed=" + seedPointer + ")");
+        lastPointerCaptureRetryMs = 0L;
+        // The status page handled focus while it was visible. Give it back to
+        // the desktop views before asking for pointer capture; on some devices
+        // the grant is refused while the content view has no focus.
+        if (surfaceView != null)
+            surfaceView.requestFocus();
+        if (mRoot != null) {
+            mRoot.requestFocus();
+        }
+        if (getWindow() != null && getWindow().getDecorView() != null)
+            getWindow().getDecorView().requestFocus();
+        if (mRoot != null) {
+            mRoot.post(this::syncPointerCapture);
+            lifecycleHandler.postDelayed(this::syncPointerCapture, 150L);
+            lifecycleHandler.postDelayed(this::syncPointerCapture, 500L);
+        }
+        // KWin drops pointer motion until it has a focused surface again. The
+        // first mouse move normally does this, but after a producer restart the
+        // seat can stay pointerless until a touch. Send the last known position
+        // once the fresh input channel is up so the physical mouse works
+        // immediately, without requiring a touchscreen tap.
+        if (seedPointer) {
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 100L);
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 500L);
+            lifecycleHandler.postDelayed(this::seedProducerPointer, 1000L);
+        }
+    }
+
+    private void seedProducerPointer() {
+        if (mNative == null || desktopDisconnected || !mResumed
+                || isFinishing() || isDestroyed())
+            return;
+        Log.d(TAG, "seeding producer pointer position");
+        // Only re-seed a position the user actually had. Inventing a centre
+        // position on a touch-only device would move the desktop cursor for no
+        // reason.
+        boolean hadPointer = Float.isFinite(pointerX) && Float.isFinite(pointerY);
+        ensurePointerPosition();
+        if (!hadPointer || !Float.isFinite(pointerX) || !Float.isFinite(pointerY))
+            return;
+        // A non-zero delta makes this a real pointer motion for compositors that
+        // skip no-op absolute updates; 1px is corrected by the next real sample.
+        mNative.sendMouseMotion((pointerX - pointerOriginX()) * pointerScaleX(),
+                (pointerY - pointerOriginY()) * pointerScaleY(), 1f, 1f);
+    }
+
+    /**
+     * A mouse can arrive while capture is wanted but not yet active (e.g. a
+     * reconnect raced the window-focus grant). Retry on hover without clearing
+     * the Back-key suppression, so moving the mouse alone restores capture.
+     */
+    private void maybeRetryPointerCaptureOnHover() {
+        if (mRoot == null || desktopDisconnected || !pointerCaptureWanted()
+                || pointerCaptureSuppressed || !mRoot.hasWindowFocus()
+                || mRoot.hasPointerCapture())
+            return;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastPointerCaptureRetryMs < 500L)
+            return;
+        lastPointerCaptureRetryMs = now;
+        mRoot.post(this::syncPointerCapture);
+    }
+
     /** Keep the window's pointer-capture state in sync with the saved setting. */
     private void syncPointerCapture() {
-        if (mRoot == null)
+        if (mRoot == null || desktopDisconnected || isFinishing() || isDestroyed()
+                || !mRoot.isAttachedToWindow())
             return;
 
         boolean shouldCapture = pointerCaptureWanted()
@@ -2022,6 +2531,22 @@ public class MainActivity extends Activity
 
         // The socket pref may have been edited in Settings; keep our dedup key current.
         registerWindow();
+
+        // Coming back from background while the desktop is still away: restore the
+        // Anland page without waiting for another fallback.
+        if (desktopDisconnected) {
+            long goneFor = desktopLostSinceMs > 0
+                    ? android.os.SystemClock.uptimeMillis() - desktopLostSinceMs : 0;
+            if (desktopClosed || goneFor >= DESKTOP_CLOSED_GRACE_MS) {
+                desktopClosed = true;
+                showDesktopClosedPage();
+            } else {
+                showDesktopWaitingPage();
+                // onStop cancelled the grace timer; restore it with the time
+                // already spent away from the window.
+                scheduleDesktopPage();
+            }
+        }
     }
 
     @Override
@@ -2066,6 +2591,10 @@ public class MainActivity extends Activity
         if (dm != null)
             dm.unregisterDisplayListener(displayListener);
         stopNativePipeline();
+        // No probing or page timers while the window is not on screen; onResume
+        // restores the page from the retained desktopDisconnected state.
+        cancelDesktopPageTimers();
+        cancelInitialWaitPage();
         abandonMediaAudioFocus();
     }
 
@@ -2073,6 +2602,8 @@ public class MainActivity extends Activity
     protected void onDestroy() {
         Log.i(TAG, "onDestroy: releasing native and immersive input");
         cancelPendingReconnect();
+        cancelDesktopPageTimers();
+        cancelInitialWaitPage();
         lifecycleHandler.removeCallbacks(delayedFocusStop);
         lifecycleHandler.removeCallbacks(delayedSurfaceStop);
         mResumed = false;
@@ -2304,7 +2835,9 @@ public class MainActivity extends Activity
         mHudOverlay.setLayer(keyboardUp
                 ? com.anland.consumer.hud.HudOverlayView.LAYER_KEYBOARD
                 : com.anland.consumer.hud.HudOverlayView.LAYER_HUD);
-        int next = wantHud ? View.VISIBLE : View.GONE;
+        // The desktop status page owns the screen: keep the HUD out of its way
+        // even if a resume/relayout tries to show it again.
+        int next = (wantHud && !desktopDisconnected) ? View.VISIBLE : View.GONE;
         if (next == View.GONE && mHudOverlay.getVisibility() != View.GONE) {
             // A widget hidden under the finger never sees its ACTION_UP, so the
             // gesture has to be cancelled here instead of ending in limbo.
@@ -2911,12 +3444,18 @@ public class MainActivity extends Activity
         }
         if (isMouseEvent(event)) {
             int action = event.getActionMasked();
+            // If capture was lost across a producer restart, a plain hover may
+            // be the first thing the user does. Retry the capture here instead
+            // of waiting for a click/touch that may never come.
+            maybeRetryPointerCaptureOnHover();
             if (action == MotionEvent.ACTION_BUTTON_PRESS
                     && pointerCaptureWanted() && mRoot != null
                     && !mRoot.hasPointerCapture()) {
                 requestPointerCaptureAfterClick();
             }
-            if (action == MotionEvent.ACTION_HOVER_MOVE) {
+            if (action == MotionEvent.ACTION_HOVER_ENTER
+                    || action == MotionEvent.ACTION_HOVER_MOVE
+                    || action == MotionEvent.ACTION_MOVE) {
                 float nativeX, nativeY;
                 if (autoStretch) {
                     float scaleX = (customScreenWidth > 0 && viewWidth > 0) ? 
@@ -2989,6 +3528,10 @@ public class MainActivity extends Activity
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // The desktop is not there to receive keys: let Android handle them
+        // (notably Back/Esc, which leaves the status page).
+        if (desktopDisconnected)
+            return super.onKeyDown(keyCode, event);
         if (handleSourceAwareKey(event))
             return true;
         // Before the repeat swallow: each repeat must become one more tap, so
@@ -3008,6 +3551,12 @@ public class MainActivity extends Activity
     // unexpectedly finish via gesture navigation.
     @Override
     public void onBackPressed() {
+        // While the desktop is away, Back means leave the Anland page: the
+        // normal path below deliberately swallows Back to keep capture alive.
+        if (desktopDisconnected) {
+            exitAnlandWindow();
+            return;
+        }
         if (mHudOverlay != null && mHudOverlay.isEditMode()) {
             mHudOverlay.requestExit();
             return;
@@ -3025,6 +3574,10 @@ public class MainActivity extends Activity
     // Called from KeyInterceptor (accessibility service) to handle keys that
     // the normal onKeyDown/onKeyUp might miss (e.g. Fn combos).
     public boolean handleAccessibilityKey(KeyEvent event) {
+        // The desktop is gone: do not consume keys for a pipeline that will
+        // simply drop them. Back/Esc can then reach the status page.
+        if (desktopDisconnected)
+            return false;
         // The same decision boundary as the Activity paths: with interception on
         // this is the only ingress, and the two must not diverge.
         if (handleSourceAwareKey(event))
@@ -3122,6 +3675,8 @@ public class MainActivity extends Activity
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (desktopDisconnected)
+            return super.onKeyUp(keyCode, event);
         if (handleSourceAwareKey(event))
             return true;
         if (handleImeDelTap(event))
