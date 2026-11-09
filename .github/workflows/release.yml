@@ -11,6 +11,11 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    # build.yml 的两个产物开关默认 false；发版需要 daemon（下面要打 Magisk 模块 zip），
+    # 与改动前一致也构建 tracy（不需要时把 build_tracy 改成 false 即可省一次构建）。
+    with:
+      build_tracy: true
+      build_daemon: true
     # 把仓库 secrets 透传给可复用工作流，build.yml 才能从 KEYSTORE_BASE64 还原发布签名。
     # 未配置这些 secrets 时 build.yml 会自动退回 debug keystore。
     secrets: inherit

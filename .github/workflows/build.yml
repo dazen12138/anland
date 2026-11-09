@@ -7,25 +7,87 @@ on:
       - legacy
       - dev/*
   workflow_dispatch:
+    # 手动触发时可勾选要构建的额外产物，默认都不构建（anland-v5 始终构建）
+    inputs:
+      build_tracy:
+        description: '构建 anland-v5-tracy（性能分析客户端）'
+        type: boolean
+        default: false
+      build_daemon:
+        description: '构建 anland-daemon / Magisk 模块'
+        type: boolean
+        default: false
   workflow_call:
+    # 可复用工作流入口（release.yml 调用）：release 需要 daemon，必须显式传 true
+    inputs:
+      build_tracy:
+        description: '构建 anland-v5-tracy（性能分析客户端）'
+        type: boolean
+        required: false
+        default: false
+      build_daemon:
+        description: '构建 anland-daemon / Magisk 模块'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
+  # 根据触发方式决定构建哪些产物，并拼出 build-apk 的 matrix。
+  # - workflow_dispatch / workflow_call：用勾选框 / 传参的值（默认 false）
+  # - push：没有勾选框可用，沿用原来的行为（plain + daemon，不构建 tracy）
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      build_tracy: ${{ steps.plan.outputs.build_tracy }}
+      build_daemon: ${{ steps.plan.outputs.build_daemon }}
+    steps:
+      - name: Plan build matrix
+        id: plan
+        env:
+          INPUT_BUILD_TRACY: ${{ inputs.build_tracy }}
+          INPUT_BUILD_DAEMON: ${{ inputs.build_daemon }}
+        run: |
+          set -euo pipefail
+
+          # push 触发的 inputs 是空字符串；显式传入的 false 也是非空，可据此区分
+          BUILD_TRACY="${INPUT_BUILD_TRACY:-false}"
+          BUILD_DAEMON="${INPUT_BUILD_DAEMON:-true}"
+
+          PLAIN='{"task":"assemblePlainRelease","name":"anland-v5","apk":"plain/release/app-plain-release.apk"}'
+          TRACY='{"task":"assembleTracyRelease","name":"anland-v5-tracy","apk":"tracy/release/app-tracy-release.apk"}'
+          if [ "$BUILD_TRACY" = "true" ]; then
+            MATRIX="{\"include\":[$PLAIN,$TRACY]}"
+          else
+            MATRIX="{\"include\":[$PLAIN]}"
+          fi
+
+          {
+            echo "matrix=$MATRIX"
+            echo "build_tracy=$BUILD_TRACY"
+            echo "build_daemon=$BUILD_DAEMON"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### 构建计划"
+            echo ""
+            echo "| 产物 | 构建 |"
+            echo "| --- | --- |"
+            echo "| anland-v5 | ✅ |"
+            echo "| anland-v5-tracy | $([ "$BUILD_TRACY" = "true" ] && echo "✅" || echo "⏭️ 跳过") |"
+            echo "| anland-daemon | $([ "$BUILD_DAEMON" = "true" ] && echo "✅" || echo "⏭️ 跳过") |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build-apk:
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
-      # One plain APK and one with the Tracy client enabled for profiling
-      # (product flavors in app/build.gradle; the tracy flavor also adds the
-      # INTERNET permission the Tracy listener needs). Tracy build clones the
-      # tag pinned in jni/CMakeLists.txt at configure time.
+      # anland-v5 始终构建；anland-v5-tracy（Tracy 性能分析客户端，见 app/build.gradle
+      # 的 product flavors，tracy flavor 额外带 Tracy 监听所需的 INTERNET 权限）
+      # 由 prepare 决定是否加入 matrix。Tracy 构建会在 configure 阶段克隆
+      # jni/CMakeLists.txt 里固定的 tag。
       fail-fast: false
-      matrix:
-        include:
-          - task: assemblePlainRelease
-            name: anland-v5
-            apk: plain/release/app-plain-release.apk
-#          - task: assembleTracyRelease
-#            name: anland-v5-tracy
-#            apk: tracy/release/app-tracy-release.apk
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,10 +119,12 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${KEYSTORE_BASE64:-}" ] || -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
-            echo "release keystore配置不全，退回 debug keystore。"
+          # 四个 secret 齐全才算"配置了发布签名"，缺任一个都退回 debug keystore
+          # （不能 exit 1：那样 debug keystore 兜底步骤就没机会跑了）
+          if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "release keystore 配置不全（KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD），退回 debug keystore。"
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            exit 1
+            exit 0
           fi
           KEYSTORE_FILE="$RUNNER_TEMP/keystore.jks"
           # 容忍 secret 里带换行（base64 按行折叠）或 CRLF
@@ -72,6 +136,7 @@ jobs:
           # 提前验证密码/alias 可用，避免等到 gradle 打包时才失败
           keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" > /dev/null
           keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null
+          echo "configured=true" >> "$GITHUB_OUTPUT"
           {
             echo "KEYSTORE_FILE=$KEYSTORE_FILE"
             echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
@@ -80,7 +145,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Generate debug keystore
-        if: steps.keystore.outputs.configured == 'false'
+        if: steps.keystore.outputs.configured != 'true'
         run: |
           mkdir -p $HOME/.android
           keytool -genkeypair -v -keystore $HOME/.android/debug.keystore \
@@ -127,6 +192,8 @@ jobs:
           overwrite: true
 
   build-daemon:
+    needs: prepare
+    if: needs.prepare.outputs.build_daemon == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
