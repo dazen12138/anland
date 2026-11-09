@@ -18,6 +18,16 @@ int  set_fallback_callback(display_ctx *ctx, void (*on_fallback)(void *), void *
 int  poll_output_event(display_ctx *ctx, struct OutputEvent *event, int timeout_ms);
 int  poll_output_event_extend_data(display_ctx *ctx, void* payload, size_t size, int timeout_ms);
 int  set_exit_fallback_callback(display_ctx *ctx, void (*on_exit_fallback)(void *), void *userdata);
+/* Producer/daemon lifecycle for the render loop. consumer_try_reconnect() drives
+ * the fallback->live transition and reports a dead daemon control channel; the
+ * host then reconnects the whole consumer instance to the daemon.
+ * consumer_is_fallback() lets a renderer skip dequeue/queue work while there is
+ * no producer (queueing stale buffers causes visible flicker and a busy loop). */
+int  consumer_is_fallback(display_ctx *ctx);
+int  consumer_try_reconnect(display_ctx *ctx);
+int  consumer_set_control_lost_callback(display_ctx *ctx,
+                                        void (*on_control_lost)(void *),
+                                        void *userdata);
 int  get_data_fd(display_ctx *ctx);
 int  get_audio_fd(display_ctx *ctx);
 void handle_unhandled_event(display_ctx *ctx, const struct OutputEvent *event);

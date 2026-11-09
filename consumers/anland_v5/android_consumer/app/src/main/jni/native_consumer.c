@@ -44,6 +44,11 @@ static bool api_loaded = false;
 static void on_fallback(void *userdata);
 
 static void on_exit_fallback(void *userdata);
+
+/* Fired once when the daemon's control socket dies: this consumer instance can
+ * no longer handshake with a respawned daemon, so MainActivity must tear the
+ * pipeline down and reconnect to the socket path. */
+static void on_control_lost(void *userdata);
 struct consumer_state {
     pthread_mutex_t lock;
     /* Serialises the producer input stream; tablet frames hold it across their
@@ -57,6 +62,11 @@ struct consumer_state {
     //Note: it is Deamon's Reconnect, not Fallback Flag
     //Fallback is maintained by display lib, and the consumer should not care about it.
     volatile bool need_reconnect;
+    /* do_connect() attempts that failed back-to-back. After a few seconds of a
+     * daemon that cannot be reached, tell Java -- otherwise the render thread
+     * would spin forever on a dead socket path with no ctrl fd to report HUP. */
+    int connect_failures;
+    bool daemon_lost_reported;
 
     int buf_count;
     int dmabuf_fds[MAX_COLLECT_BUFS];
@@ -297,8 +307,14 @@ static void *event_thread_func(void *arg)
         TracyCZoneN(zPoll, "poll_output_event", 1);
         int ret = poll_output_event(s->ctx, &ev, 500);
         TracyCZoneEnd(zPoll);
-        if (ret <= 0)
+        if (ret <= 0) {
+            /* poll_output_event() returns immediately while the display lib is in
+             * fallback; without this sleep a racing event thread would spin at
+             * 100% until the next reconnect. */
+            if (consumer_is_fallback(s->ctx))
+                usleep(50000);
             continue;
+        }
 
         if (ev.type == OUTPUT_TYPE_RESOURCES_REQUEST) {
             /* Producer is asking for a service's fds (e.g. camera). The display lib
@@ -483,24 +499,42 @@ static int recv_fd_via_root_helper(const char *daemon_sock,
         _exit(127);   /* su not found / exec failed */
     }
 
-    /* Wait for the helper to connect (root prompt may take a while). */
+    /* Wait for the helper to connect (root prompt may take a while). Do NOT sit
+     * in a 30 s poll when the helper has already failed: fd_helper connects to
+     * the daemon first and exits without touching the bridge if that fails, so
+     * a dead daemon would otherwise block a stop/reconnect for the full timeout.
+     * Watch the child with WNOHANG alongside the bridge. */
     int fd = -1;
+    int status = 0;
+    bool reaped = false;
     struct pollfd pfd = { .fd = lfd, .events = POLLIN };
-    if (poll(&pfd, 1, 30000) > 0 && (pfd.revents & POLLIN)) {
-        int cfd = accept(lfd, NULL, NULL);
-        if (cfd >= 0) {
-            char b;
-            int got = 0;
-            if (recv_fds(cfd, &b, 1, &fd, 1, &got) < 0 || got < 1)
-                fd = -1;
-            close(cfd);
+    for (int waited_ms = 0; waited_ms < 30000; waited_ms += 100) {
+        if (poll(&pfd, 1, 100) > 0 && (pfd.revents & POLLIN)) {
+            int cfd = accept(lfd, NULL, NULL);
+            if (cfd >= 0) {
+                char b;
+                int got = 0;
+                if (recv_fds(cfd, &b, 1, &fd, 1, &got) < 0 || got < 1)
+                    fd = -1;
+                close(cfd);
+            }
+            break;
         }
-    } else {
-        LOGE("root helper: timed out waiting for helper connection");
+        pid_t w = waitpid(pid, &status, WNOHANG);
+        if (w == pid) {
+            reaped = true;
+            break;
+        }
+        if (w < 0 && errno != EINTR)
+            break;
+    }
+    if (!reaped) {
+        /* Timed out (or the bridge reported an error first): let the helper
+         * finish so no zombie is left. A successful helper exits right after
+         * sending the fd, so this is normally immediate. */
+        waitpid(pid, &status, 0);
     }
 
-    int status = 0;
-    waitpid(pid, &status, 0);
     close(lfd);
     unlink(bridge_path);
 
@@ -842,6 +876,12 @@ static int do_connect(struct consumer_state *s)
         return -1;
     }
 
+    /* Register immediately: the daemon can die between the handshake and the
+     * rest of this setup, and the callbacks must be able to report it. */
+    set_fallback_callback(s->ctx, on_fallback, s);
+    set_exit_fallback_callback(s->ctx, on_exit_fallback, s);
+    consumer_set_control_lost_callback(s->ctx, on_control_lost, s);
+
     set_screen_info(s->ctx, s->screen_w, s->screen_h,
                     PIXEL_FORMAT_RGBA_8888, s->refresh_mhz);
     push_dmabufs(s->ctx, s->dmabuf_fds, s->dmabuf_infos, s->buf_count);
@@ -858,9 +898,6 @@ static int do_connect(struct consumer_state *s)
         s->camera_svc.userdata = s;
         allocate_services(s->ctx, &s->camera_svc, 1);
     }
-
-    set_fallback_callback(s->ctx, on_fallback, s);
-    set_exit_fallback_callback(s->ctx, on_exit_fallback, s);
 
     audio_set_ctx(s->audio, s->ctx);   /* audio fd is now live; threads pick it up via get_audio_fd */
 
@@ -922,6 +959,38 @@ static void on_fallback(void *userdata)
     stop_event_thread(s);
 }
 
+/* The daemon/broker accepted our connection once, but its control socket is now
+ * closed. Unlike a producer loss, this ctx cannot recover by waiting: a new
+ * producer may appear, but the handshake channel to the daemon is gone. Tell
+ * MainActivity to restart its native pipeline (and retry the daemon socket). */
+static void on_control_lost(void *userdata)
+{
+    struct consumer_state *s = userdata;
+    if (s->daemon_lost_reported)
+        return;
+    s->daemon_lost_reported = true;
+    LOGI("daemon unreachable or control channel lost");
+
+    if (!g_jvm || !s->activity_obj)
+        return;
+
+    JNIEnv *env = NULL;
+    bool attached = false;
+    if ((*g_jvm)->GetEnv(g_jvm, (void **)&env, JNI_VERSION_1_6) == JNI_EDETACHED) {
+        if ((*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL) == 0)
+            attached = true;
+    }
+    if (env) {
+        jclass cls = (*env)->GetObjectClass(env, s->activity_obj);
+        jmethodID mid = (*env)->GetMethodID(env, cls, "onControlLost", "()V");
+        if (mid)
+            (*env)->CallVoidMethod(env, s->activity_obj, mid);
+        (*env)->DeleteLocalRef(env, cls);
+    }
+    if (attached)
+        (*g_jvm)->DetachCurrentThread(g_jvm);
+}
+
 static void on_exit_fallback(void *userdata)
 {
     struct consumer_state *s = userdata;
@@ -965,6 +1034,18 @@ static void on_exit_fallback(void *userdata)
     if (syncMethod)
         (*env)->CallVoidMethod(env, s->clipboard_obj, syncMethod);
 
+    /* The consumer is live again (fresh producer session): let the owning window
+     * hide its "waiting for desktop" page. Posted to the UI thread on the Java
+     * side, so this render-thread call never blocks on window work. */
+    if (s->activity_obj) {
+        jclass activityCls = (*env)->GetObjectClass(env, s->activity_obj);
+        jmethodID reconnectedMid =
+            (*env)->GetMethodID(env, activityCls, "onDesktopReconnected", "()V");
+        if (reconnectedMid)
+            (*env)->CallVoidMethod(env, s->activity_obj, reconnectedMid);
+        (*env)->DeleteLocalRef(env, activityCls);
+    }
+
     (*g_jvm)->DetachCurrentThread(g_jvm);
 }
 
@@ -980,7 +1061,38 @@ static void *render_thread_func(void *arg)
             int rc = do_connect(s);
             TracyCZoneEnd(zConnect);
             if (rc < 0) {
+                /* No ctrl fd exists on a failed connect, so the lib cannot report
+                 * HUP. After a few failed retries hand control to Java, which
+                 * shows the Anland page and probes the socket at a low rate
+                 * instead of spawning a root helper twice a second forever. */
+                if (++s->connect_failures >= 6)
+                    on_control_lost(s);
                 usleep(500000);
+                continue;
+            }
+            s->connect_failures = 0;
+        }
+
+        if (!s->ctx) {
+            usleep(16000);
+            continue;
+        }
+
+        /* While there is no producer, never touch the buffer queue: select_dmabuf()
+         * used to return 0 in fallback, so the old loop dequeued and re-queued the
+         * same stale buffers as fast as SurfaceFlinger would take them -- visible
+         * flicker between old frames and a pegged CPU. Just wait for the daemon to
+         * hand the next producer's session back, at ~60 Hz. */
+        if (consumer_is_fallback(s->ctx)) {
+            int rc = consumer_try_reconnect(s->ctx);
+            /* A concurrent input failure can re-enter fallback right after the
+             * up-transition; do not touch the buffer queue in that case. */
+            if (rc == 1 && consumer_is_fallback(s->ctx))
+                rc = 0;
+            if (rc != 1) {
+                /* -1: control channel gone; Java is tearing this instance down.
+                 * 0: still waiting for a producer. */
+                usleep(rc < 0 ? 50000 : 16000);
                 continue;
             }
         }
@@ -1285,6 +1397,8 @@ Java_com_anland_consumer_Native_nativeStart(
 
     s->running = true;
     s->need_reconnect = true;
+    s->connect_failures = 0;
+    s->daemon_lost_reported = false;
     pthread_create(&s->render_thread, NULL, render_thread_func, s);
 
     /* Audio streams live independently of the connection; the render thread attaches

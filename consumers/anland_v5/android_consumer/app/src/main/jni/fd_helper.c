@@ -17,8 +17,8 @@
  *
  *   usage: libfdhelper.so <daemon_socket_path> test
  *
- *   exit 0 -> path exists and is a unix-domain socket
- *   exit 1 -> anything else (missing / wrong type / unreadable)
+ *   exit 0 -> path is a live unix-domain socket (connect succeeds)
+ *   exit 1 -> anything else (missing / wrong type / unreadable / stale)
  *
  * It is shipped inside the APK as lib*.so so Android extracts it into the app's
  * nativeLibraryDir with execute permission.
@@ -42,18 +42,27 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Probe mode: report whether the daemon socket exists as a unix socket.
-     * stat(2) both resolves existence and reports the type, so a stale regular
-     * file / dir (or a missing path -> stat fails) is "not a socket" -> exit 1. */
+    /* Probe mode: report whether the daemon socket is a LIVE unix socket.
+     * stat(2) rejects a missing path or a stale regular file/dir, and the
+     * connect() rejects a leftover socket file whose daemon is gone -- a stale
+     * socket otherwise looks healthy to the retry loop and makes it restart the
+     * native pipeline forever. The daemon sees a connection that closes before
+     * its HELLO and drops it without touching any role. */
     if (strcmp(argv[2], "test") == 0) {
         const char *daemon_sock = argv[1];
         struct stat st;
-        if (stat(daemon_sock, &st) == 0 && S_ISSOCK(st.st_mode)) {
-            LOGI("test: '%s' is a socket", daemon_sock);
-            return 0;
+        if (stat(daemon_sock, &st) != 0 || !S_ISSOCK(st.st_mode)) {
+            LOGI("test: '%s' is not a socket", daemon_sock);
+            return 1;
         }
-        LOGI("test: '%s' is not a socket", daemon_sock);
-        return 1;
+        int probe = connect_unix(daemon_sock);
+        if (probe < 0) {
+            LOGI("test: '%s' is a stale socket (connect failed)", daemon_sock);
+            return 1;
+        }
+        close(probe);
+        LOGI("test: '%s' is a live socket", daemon_sock);
+        return 0;
     }
 
     const char *daemon_sock = argv[1];
