@@ -11,6 +11,9 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    # 把仓库 secrets 透传给可复用工作流，build.yml 才能从 KEYSTORE_BASE64 还原发布签名。
+    # 未配置这些 secrets 时 build.yml 会自动退回 debug keystore。
+    secrets: inherit
 
   release:
     needs: build
